@@ -100,7 +100,7 @@ def extract_noise_print(image):
     '''# Dummy noise print extraction (replace with actual noise extraction method)
     noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
     return noise'''
-    def extract_noise_print(image):
+    
     # Convert tensor to numpy array
     image_np = image.squeeze(0).permute(1, 2, 0).cpu().numpy()
 
@@ -114,7 +114,7 @@ def extract_noise_print(image):
     # Convert the noise back to tensor format
     noise_tensor = torch.tensor(noise).unsqueeze(0).unsqueeze(0)  # Add batch and channel dimensions
     noise_tensor = noise_tensor.repeat(1, 3, 1, 1)  # Make 3 channels to match the input image shape
-    
+
     return noise_tensor
 
 # Merge Function into Existing Code
