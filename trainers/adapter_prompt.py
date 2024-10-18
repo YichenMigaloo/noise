@@ -16,6 +16,8 @@ _tokenizer = _Tokenizer()
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
+import cv2
+import numpy as np
 
 # Tokenization function with exception handling
 def tokenize_prompts(classnames):
@@ -95,9 +97,25 @@ def load_image(image_path):
     return transform(image).unsqueeze(0)  # Add batch dimension
 
 def extract_noise_print(image):
-    # Dummy noise print extraction (replace with actual noise extraction method)
+    '''# Dummy noise print extraction (replace with actual noise extraction method)
     noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
-    return noise
+    return noise'''
+    def extract_noise_print(image):
+    # Convert tensor to numpy array
+    image_np = image.squeeze(0).permute(1, 2, 0).cpu().numpy()
+
+    # Convert RGB image to grayscale
+    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+
+    # Use BM3D or other denoising method for extracting noise
+    noise_std_dev = 10
+    noise = cv2.fastNlMeansDenoising(gray, None, noise_std_dev, 7, 21)
+
+    # Convert the noise back to tensor format
+    noise_tensor = torch.tensor(noise).unsqueeze(0).unsqueeze(0)  # Add batch and channel dimensions
+    noise_tensor = noise_tensor.repeat(1, 3, 1, 1)  # Make 3 channels to match the input image shape
+    
+    return noise_tensor
 
 # Merge Function into Existing Code
 def extract_and_fuse_embeddings(model, image_path):
@@ -289,8 +307,8 @@ class UnifiedTrainer(TrainerX):
         classnames = self.dm.dataset.classnames
         print(f"Classnames:{classnames}")
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
-        clip_model = load_clip_to_cpu(cfg)
-        #clip_model = load_vit_without_last_layer(cfg)
+        #clip_model = load_clip_to_cpu(cfg)
+        clip_model = load_vit_without_last_layer(cfg)
 
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             clip_model.float()
