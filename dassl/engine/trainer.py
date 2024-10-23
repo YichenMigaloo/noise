@@ -655,7 +655,7 @@ class TrainerX(SimpleTrainer):
 
             end = time.time()
 
-    '''    
+      
     def parse_batch_train(self, batch):
         input = batch["img"]
         label = batch["label"]
@@ -665,8 +665,8 @@ class TrainerX(SimpleTrainer):
         label = label.to(self.device)
         domain = domain.to(self.device)
 
-        return input, label, domain'''
-    
+        return input, label, domain
+    '''
     def load_image(image_path):
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -751,4 +751,4 @@ class TrainerX(SimpleTrainer):
         label = label.to(self.device)
         domain = domain.to(self.device)
 
-        return input, label, domain
+        return input, label, domain'''
