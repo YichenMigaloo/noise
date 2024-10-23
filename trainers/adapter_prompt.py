@@ -142,21 +142,22 @@ def extract_and_fuse_embeddings(model, image_path):
     conf_tensor = torch.from_numpy(conf)
 
     # 调整所有张量的大小为相同尺寸，假设目标尺寸为 224x224
-    target_size = (224, 224)  # 你可以根据需要调整目标尺寸
+    target_size = (224, 224)  # 目标尺寸
 
+    # 检查并确保 map_tensor 和 conf_tensor 的维度符合 (N, C, H, W) 形式
+    if map_tensor.dim() == 2:  # 如果 map_tensor 是二维的
+        map_tensor = map_tensor.unsqueeze(0).unsqueeze(0)  # 扩展为 (1, 1, H, W) 格式
+    if conf_tensor.dim() == 2:  # 如果 conf_tensor 是二维的
+        conf_tensor = conf_tensor.unsqueeze(0).unsqueeze(0)  # 扩展为 (1, 1, H, W) 格式
+
+    # 使用 F.interpolate 调整大小
     rgb_image = F.interpolate(rgb_image, size=target_size, mode='bilinear', align_corners=False)
-    map_tensor = F.interpolate(map_tensor.unsqueeze(0), size=target_size, mode='bilinear', align_corners=False)
-    conf_tensor = F.interpolate(conf_tensor.unsqueeze(0), size=target_size, mode='bilinear', align_corners=False)
+    map_tensor = F.interpolate(map_tensor, size=target_size, mode='bilinear', align_corners=False)
+    conf_tensor = F.interpolate(conf_tensor, size=target_size, mode='bilinear', align_corners=False)
 
-    # 确保 map 和 conf 的形状与 rgb_image 的形状一致
-    if map_tensor.dim() == 2:  # 如果是二维张量
-        map_tensor = map_tensor.unsqueeze(0).repeat(3, 1, 1)  # 将其扩展为与 RGB 图像匹配的形状
-    if conf_tensor.dim() == 2:
-        conf_tensor = conf_tensor.unsqueeze(0).repeat(3, 1, 1)
-
-    # 添加批次维度
-    map_tensor = map_tensor.unsqueeze(0)
-    conf_tensor = conf_tensor.unsqueeze(0)
+    # 如果需要三通道，重复 map 和 conf 的通道
+    map_tensor = map_tensor.repeat(1, 3, 1, 1)  # (1, 3, H, W)
+    conf_tensor = conf_tensor.repeat(1, 3, 1, 1)  # (1, 3, H, W)
 
     # Combine both images into a batch
     images = torch.cat((rgb_image, map_tensor, conf_tensor), dim=0)
