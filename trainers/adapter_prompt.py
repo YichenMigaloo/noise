@@ -118,22 +118,9 @@ def load_image(image_path):
 
 def encode_output_path(image_path):
     directory, filename = os.path.split(image_path)
-    
-    dir_parts = directory.split(os.sep)
-    
-    for i in range(len(dir_parts)):
-        if dir_parts[i] == 'train':
-            dir_parts[i] = 'train_noiseprint'
-            break  
-    
-    dir_parts[-1] = dir_parts[-1] + "_noiseprint"
-    
-    new_directory = os.path.join(*dir_parts)
-    
+    new_directory = directory.replace('/images', '/noiseprint')
     output_filename = filename + ".npz"
     output_path = os.path.join(new_directory, output_filename)
-    output_path = '/'+output_path
-    
     return output_path
 
 
