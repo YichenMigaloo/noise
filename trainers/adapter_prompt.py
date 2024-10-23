@@ -382,7 +382,7 @@ class UnifiedTrainer(TrainerX):
         input = input.to(self.device)
         label = label.to(self.device)
         return input, label'''
-        image_paths = batch["impath"]  # 假设 batch 中包含图像路径的键是 "impath"
+        image_paths = batch["img"]
         label = batch["label"]
 
         # 使用 extract_and_fuse_embeddings 提取图像与噪声的融合嵌入
