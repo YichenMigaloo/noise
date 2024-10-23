@@ -382,19 +382,16 @@ class UnifiedTrainer(TrainerX):
         input = input.to(self.device)
         label = label.to(self.device)
         return input, label'''
-        image_paths = batch["img"]
+        image_paths = batch["impath"]
         label = batch["label"]
 
-        # 使用 extract_and_fuse_embeddings 提取图像与噪声的融合嵌入
         embeddings_list = []
         for image_path in image_paths:
             embeddings = extract_and_fuse_embeddings(self.model, image_path)
             embeddings_list.append(embeddings)
 
-        # 将列表中的嵌入堆叠为一个 Tensor
         input = torch.stack(embeddings_list)
 
-        # 将输入和标签传递到 GPU
         input = input.to(self.device)
         label = label.to(self.device)
 
