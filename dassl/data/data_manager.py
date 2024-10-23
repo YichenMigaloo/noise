@@ -226,8 +226,9 @@ class DatasetWrapper(TorchDataset):
             "impath": item.impath,
             "index": idx
         }
-        
-        img0 = read_image(item.impath)
+        #img0 = read_image(item.impath)
+        if item.impath.endswith(".png"):
+            img0 = read_image(item.impath)
 
         if self.transform is not None:
             if isinstance(self.transform, (list, tuple)):
