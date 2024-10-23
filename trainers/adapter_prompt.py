@@ -368,8 +368,8 @@ class UnifiedTrainer(TrainerX):
         map_tensor = F.interpolate(map_tensor, size=(224, 224), mode='bilinear', align_corners=False)
         conf_tensor = F.interpolate(conf_tensor, size=(224, 224), mode='bilinear', align_corners=False)
         
-        # Concatenate all inputs along the batch dimension
-        input = torch.cat([rgb_image, map_tensor, conf_tensor], dim=0).to(self.device)
+        # Concatenate along the channel dimension
+        input = torch.cat([rgb_image, map_tensor, conf_tensor], dim=1).to(self.device)  # Concatenate along channel dimension (C)
         label = label.to(self.device)
 
         if self.cfg.TRAINER.COOP.PREC == "amp":
