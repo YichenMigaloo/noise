@@ -348,7 +348,7 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        image_path = batch["img_path"]
+        image_path = batch["impath"]
         label = batch["label"]
         
         # Load RGB image, map, and conf
