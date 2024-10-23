@@ -7,7 +7,8 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-
+import torchvision.transforms as transforms
+from PIL import Image
 
 from dassl.data import DataManager
 from dassl.optim import build_optimizer, build_lr_scheduler
@@ -652,11 +653,95 @@ class TrainerX(SimpleTrainer):
 
             end = time.time()
 
+    '''    
     def parse_batch_train(self, batch):
         input = batch["img"]
         label = batch["label"]
         domain = batch["domain"]
 
+        input = input.to(self.device)
+        label = label.to(self.device)
+        domain = domain.to(self.device)
+
+        return input, label, domain'''
+    
+    def load_image(image_path):
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        image = Image.open(image_path).convert('RGB')
+        return transform(image).unsqueeze(0)  # Add batch dimension
+    def encode_output_path(image_path):
+        directory, filename = os.path.split(image_path)
+        new_directory = directory.replace('/images', '/noiseprint')
+        output_filename = filename + ".npz"
+        output_path = os.path.join(new_directory, output_filename)
+        return output_path
+
+
+    def load_noiseprint(image_path):
+        output_path = encode_output_path(image_path)
+        result = np.load(output_path)
+        map = result['map']
+        conf = result['conf']
+        
+        return map,conf
+    
+    def extract_and_fuse_embeddings(model, image_path):
+    # Load the RGB image and the noise print
+        rgb_image = load_image(image_path)
+        map, conf = load_noiseprint(image_path)
+        
+        # 将 numpy.ndarray 转换为 PyTorch Tensor
+        map_tensor = torch.from_numpy(map)
+        conf_tensor = torch.from_numpy(conf)
+
+        # 调整所有张量的大小为相同尺寸，假设目标尺寸为 224x224
+        target_size = (224, 224)  # 你可以根据需要调整目标尺寸
+
+        rgb_image = F.interpolate(rgb_image, size=target_size, mode='bilinear', align_corners=False)
+        map_tensor = F.interpolate(map_tensor.unsqueeze(0), size=target_size, mode='bilinear', align_corners=False)
+        conf_tensor = F.interpolate(conf_tensor.unsqueeze(0), size=target_size, mode='bilinear', align_corners=False)
+
+        # 确保 map 和 conf 的形状与 rgb_image 的形状一致
+        if map_tensor.dim() == 2:  # 如果是二维张量
+            map_tensor = map_tensor.unsqueeze(0).repeat(3, 1, 1)  # 将其扩展为与 RGB 图像匹配的形状
+        if conf_tensor.dim() == 2:
+            conf_tensor = conf_tensor.unsqueeze(0).repeat(3, 1, 1)
+
+        # 添加批次维度
+        map_tensor = map_tensor.unsqueeze(0)
+        conf_tensor = conf_tensor.unsqueeze(0)
+
+        # Combine both images into a batch
+        images = torch.cat((rgb_image, map_tensor, conf_tensor), dim=0)
+        
+        # Pass through the network to get embeddings
+        embeddings = model(images)
+        
+        # Combine the Embeddings
+        combined_embedding = torch.cat((embeddings[0], embeddings[1], embeddings[2]), dim=0)  # Concatenate embeddings
+        
+        return combined_embedding
+    def parse_batch_train(self, batch):
+            # 获取图像路径列表
+        image_paths = batch["impath"]  # 假设 batch 中包含图像路径 "impath"
+        label = batch["label"]
+        domain = batch["domain"]
+
+            # 提取图像与噪声融合的嵌入
+        embeddings_list = []
+        for image_path in image_paths:
+                # 使用 extract_and_fuse_embeddings 生成嵌入
+            embeddings = extract_and_fuse_embeddings(self.model, image_path)
+            embeddings_list.append(embeddings)
+
+            # 将嵌入堆叠为一个 Tensor，作为模型的输入
+        input = torch.stack(embeddings_list)
+
+            # 将数据传递到 GPU
         input = input.to(self.device)
         label = label.to(self.device)
         domain = domain.to(self.device)
