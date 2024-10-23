@@ -137,9 +137,20 @@ def extract_and_fuse_embeddings(model, image_path):
     # Load the RGB image and the noise print
     rgb_image = load_image(image_path)
     map,conf = load_noiseprint(image_path)
+    map_tensor = torch.from_numpy(map)
+    conf_tensor = torch.from_numpy(conf)
     
+    if map_tensor.dim() == 2:  
+        map_tensor = map_tensor.unsqueeze(0).repeat(3, 1, 1) 
+    if conf_tensor.dim() == 2:
+        conf_tensor = conf_tensor.unsqueeze(0).repeat(3, 1, 1)
+    
+
+    map_tensor = map_tensor.unsqueeze(0)
+    conf_tensor = conf_tensor.unsqueeze(0)
+
     # Combine both images into a batch
-    images = torch.cat((rgb_image, map, conf), dim=0)
+    images = torch.cat((rgb_image, map_tensor, conf_tensor), dim=0)
     
     # Pass through the network to get embeddings
     embeddings = model(images)
@@ -148,6 +159,7 @@ def extract_and_fuse_embeddings(model, image_path):
     combined_embedding = torch.cat((embeddings[0], embeddings[1], embeddings[2]), dim=0)  # Concatenate embeddings
     
     return combined_embedding
+    
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
