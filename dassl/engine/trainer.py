@@ -9,6 +9,8 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from PIL import Image
+import torch.nn.functional as F
+
 
 from dassl.data import DataManager
 from dassl.optim import build_optimizer, build_lr_scheduler
