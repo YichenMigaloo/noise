@@ -234,7 +234,9 @@ def listdir_nohidden(path, sort=False):
          path (str): directory path.
          sort (bool): sort the items.
     """
-    items = [f for f in os.listdir(path) if not f.startswith(".")]
+    #items = [f for f in os.listdir(path) if not f.startswith(".")]
+    items = [f for f in os.listdir(path) if not f.startswith(".") and f.endswith(".png")]
+
     if sort:
         items.sort()
     return items
