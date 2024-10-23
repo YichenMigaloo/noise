@@ -732,6 +732,8 @@ class TrainerX(SimpleTrainer):
         label = batch["label"]
         domain = batch["domain"]
 
+        classnames = self.dm.dataset.classnames  # 确保类名可用
+
             # 提取图像与噪声融合的嵌入
         embeddings_list = []
         for image_path in image_paths:
