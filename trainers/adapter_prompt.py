@@ -93,6 +93,8 @@ def load_image(image_path):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+    if isinstance(image_path, list):
+        image_path = image_path[0]  # If image_path is a list, take the first element
     image = Image.open(image_path).convert('RGB')
     return transform(image).unsqueeze(0)  # Add batch dimension
 
@@ -104,6 +106,8 @@ def encode_output_path(image_path):
     return output_path
 
 def load_noiseprint(image_path):
+    if isinstance(image_path, list):
+        image_path = image_path[0]  # If image_path is a list, take the first element
     output_path = encode_output_path(image_path)
     result = np.load(output_path)
     map = result['map']
