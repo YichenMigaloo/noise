@@ -132,20 +132,29 @@ def load_noiseprint(image_path):
     
     return map,conf
 
-# Merge Function into Existing Code
 def extract_and_fuse_embeddings(model, image_path):
     # Load the RGB image and the noise print
     rgb_image = load_image(image_path)
-    map,conf = load_noiseprint(image_path)
+    map, conf = load_noiseprint(image_path)
+    
+    # 将 numpy.ndarray 转换为 PyTorch Tensor
     map_tensor = torch.from_numpy(map)
     conf_tensor = torch.from_numpy(conf)
-    
-    if map_tensor.dim() == 2:  
-        map_tensor = map_tensor.unsqueeze(0).repeat(3, 1, 1) 
+
+    # 调整所有张量的大小为相同尺寸，假设目标尺寸为 224x224
+    target_size = (224, 224)  # 你可以根据需要调整目标尺寸
+
+    rgb_image = F.interpolate(rgb_image, size=target_size, mode='bilinear', align_corners=False)
+    map_tensor = F.interpolate(map_tensor.unsqueeze(0), size=target_size, mode='bilinear', align_corners=False)
+    conf_tensor = F.interpolate(conf_tensor.unsqueeze(0), size=target_size, mode='bilinear', align_corners=False)
+
+    # 确保 map 和 conf 的形状与 rgb_image 的形状一致
+    if map_tensor.dim() == 2:  # 如果是二维张量
+        map_tensor = map_tensor.unsqueeze(0).repeat(3, 1, 1)  # 将其扩展为与 RGB 图像匹配的形状
     if conf_tensor.dim() == 2:
         conf_tensor = conf_tensor.unsqueeze(0).repeat(3, 1, 1)
-    
 
+    # 添加批次维度
     map_tensor = map_tensor.unsqueeze(0)
     conf_tensor = conf_tensor.unsqueeze(0)
 
