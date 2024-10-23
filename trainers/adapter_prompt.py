@@ -96,10 +96,8 @@ def load_image(image_path):
     image = Image.open(image_path).convert('RGB')
     return transform(image).unsqueeze(0)  # Add batch dimension
 
-def extract_noise_print(image):
-    '''# Dummy noise print extraction (replace with actual noise extraction method)
-    noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
-    return noise'''
+'''def extract_noise_print(image):
+    
     
     # Convert tensor to numpy array
     image_np = image.squeeze(0).permute(1, 2, 0).cpu().numpy()
@@ -115,13 +113,21 @@ def extract_noise_print(image):
     noise_tensor = torch.tensor(noise).unsqueeze(0).unsqueeze(0)  # Add batch and channel dimensions
     noise_tensor = noise_tensor.repeat(1, 3, 1, 1)  # Make 3 channels to match the input image shape
 
-    return noise_tensor
+    return noise_tensor'''
+
+def load_noiseprint(image_path):
+    output_path = image_path + '.npz'
+    print(image_path)
+    print(output_path)
+    result = np.load(output_path)
+    noisepr = result['np++']
+    return noisepr
 
 # Merge Function into Existing Code
 def extract_and_fuse_embeddings(model, image_path):
     # Load the RGB image and the noise print
     rgb_image = load_image(image_path)
-    noise_print = extract_noise_print(rgb_image)
+    noise_print = load_noiseprint(image_path)
     
     # Combine both images into a batch
     images = torch.cat((rgb_image, noise_print), dim=0)
