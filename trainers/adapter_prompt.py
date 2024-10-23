@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.cuda.amp import GradScaler, autocast
-
+import os
 from dassl.engine import TRAINER_REGISTRY, TrainerX
 from dassl.metrics import compute_accuracy
 from dassl.utils import load_pretrained_weights, load_checkpoint
@@ -115,10 +115,19 @@ def load_image(image_path):
 
     return noise_tensor'''
 
+
+def encode_output_path(image_path):
+    directory, filename = os.path.split(image_path)
+    folder_name = os.path.basename(directory)
+    new_directory = directory.replace(folder_name, folder_name + "_noiseprint")
+    output_filename = filename + ".npz"
+    output_path = os.path.join(new_directory, output_filename)
+    
+    return output_path
+
+
 def load_noiseprint(image_path):
-    output_path = image_path + '.npz'
-    print(image_path)
-    print(output_path)
+    output_path = encode_output_path(image_path)
     result = np.load(output_path)
     noisepr = result['np++']
     return noisepr
