@@ -127,25 +127,25 @@ def encode_output_path(image_path):
 def load_noiseprint(image_path):
     output_path = encode_output_path(image_path)
     result = np.load(output_path)
-    noisepr = result['np++'].to_tensor()
-    print("noiseprint")
-    print(noisepr)
-    return noisepr
+    map = result['map'].to_tensor()
+    conf = result['conf'].to_tensor()
+    
+    return map,conf
 
 # Merge Function into Existing Code
 def extract_and_fuse_embeddings(model, image_path):
     # Load the RGB image and the noise print
     rgb_image = load_image(image_path)
-    noise_print = load_noiseprint(image_path)
+    map,conf = load_noiseprint(image_path)
     
     # Combine both images into a batch
-    images = torch.cat((rgb_image, noise_print), dim=0)
+    images = torch.cat((rgb_image, map, conf), dim=0)
     
     # Pass through the network to get embeddings
     embeddings = model(images)
     
     # Combine the Embeddings
-    combined_embedding = torch.cat((embeddings[0], embeddings[1]), dim=0)  # Concatenate embeddings
+    combined_embedding = torch.cat((embeddings[0], embeddings[1], embeddings[2]), dim=0)  # Concatenate embeddings
     
     return combined_embedding
 
