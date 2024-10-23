@@ -216,6 +216,7 @@ class DatasetWrapper(TorchDataset):
         self.to_tensor = T.Compose(to_tensor)
 
     def __len__(self):
+        print(len(self.data_source))
         return len(self.data_source)
 
     def __getitem__(self, idx):
