@@ -127,8 +127,8 @@ def encode_output_path(image_path):
 def load_noiseprint(image_path):
     output_path = encode_output_path(image_path)
     result = np.load(output_path)
-    map = result['map'].to_tensor()
-    conf = result['conf'].to_tensor()
+    map = result['map']
+    conf = result['conf']
     
     return map,conf
 
