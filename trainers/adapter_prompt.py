@@ -128,7 +128,8 @@ def load_noiseprint(image_path):
     output_path = encode_output_path(image_path)
     result = np.load(output_path)
     noisepr = result['np++'].to_tensor()
-    
+    print("noiseprint")
+    print(noisepr)
     return noisepr
 
 # Merge Function into Existing Code

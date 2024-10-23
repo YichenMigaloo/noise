@@ -366,7 +366,8 @@ def main(args):
                  'dalle2', 'glide_50_27', 'glide_100_10', 'glide_100_27', 'guided', 'ldm_100', 'ldm_200', 'ldm_200_cfg',
                  'sd_512x512', 'sdxl', 'taming', 'deepfake', 'firefly', 'midjourney_v5', 'dalle3', 'faceswap']
     '''
-    dataset_names = ['progan','faceswap','dalle3','midjourney_v5']
+    #dataset_names = ['progan','faceswap','dalle3','midjourney_v5']
+    dataset_names = ['faceswap']
     if args.variant == 'linearProbing':
         eval_linear_prob(args, dataset_path, dataset_names, image_extensions, device)
     elif args.variant == 'promptTuning':
