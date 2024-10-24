@@ -120,28 +120,26 @@ def extract_and_fuse_embeddings(model, image_path):
     rgb_image = load_image(image_path)
     
     # Load noise print (map and conf) from precomputed files
-    map, conf = load_noiseprint(image_path)
+    noise_map, conf_map = load_noiseprint(image_path)
     
     # Convert map and conf to tensors (assuming they are numpy arrays)
-    map_tensor = torch.tensor(map).unsqueeze(0)  # Add batch dimension
-    conf_tensor = torch.tensor(conf).unsqueeze(0)  # Add batch dimension
+    noise_tensor = torch.tensor(noise_map).unsqueeze(0)  # Add batch dimension
+    conf_tensor = torch.tensor(conf_map).unsqueeze(0)  # Add batch dimension
 
-    # Ensure map and conf are of the same shape as the image (if necessary, resize or interpolate)
-    if map_tensor.shape[-2:] != rgb_image.shape[-2:]:
-        map_tensor = F.interpolate(map_tensor, size=rgb_image.shape[-2:], mode='bilinear', align_corners=False)
+    # Ensure noise and conf are resized to match the image size (if necessary)
+    if noise_tensor.shape[-2:] != rgb_image.shape[-2:]:
+        noise_tensor = F.interpolate(noise_tensor, size=rgb_image.shape[-2:], mode='bilinear', align_corners=False)
     if conf_tensor.shape[-2:] != rgb_image.shape[-2:]:
         conf_tensor = F.interpolate(conf_tensor, size=rgb_image.shape[-2:], mode='bilinear', align_corners=False)
+
+    # Concatenate the original image, noise_map, and conf_map along the channel dimension
+    combined_image = torch.cat((rgb_image, noise_tensor, conf_tensor), dim=1)  # Concatenating along channel dimension
     
-    # Combine the original image with noise print (map and conf)
-    combined_images = torch.cat((rgb_image, map_tensor, conf_tensor), dim=0)  # 3 input maps
+    # Pass the multi-channel image through the model
+    embeddings = model(combined_image)
     
-    # Pass through the network to get embeddings
-    embeddings = model(combined_images)
-    
-    # Combine the Embeddings (optional, depending on how you want to process the embeddings)
-    combined_embedding = torch.cat([emb for emb in embeddings], dim=0)  # Concatenate embeddings
-    
-    return combined_embedding
+    return embeddings
+
 
 
 class TextEncoder(nn.Module):
@@ -277,37 +275,34 @@ class PromptLearner(nn.Module):
 class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
+        # Assuming the CLIP model's visual encoder is adapted to take multi-channel inputs
         self.image_encoder = clip_model.visual  # Image encoder from CLIP
+        # Adjust the first convolution layer to accept more input channels (5 channels in this case)
+        self.image_encoder.conv1 = nn.Conv2d(5, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
         self.text_encoder = TextEncoder(clip_model)  # Use the modified TextEncoder with attention mask
+        
         # Integrating both trainable parts: Adapter and PromptLearner
-        self.adapter = Adapter(1024, 4)
+        self.adapter = Adapter(1024, 4)  # Adjust dimensions based on your configuration
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
 
     def forward(self, images, classnames):
+        # `images` now contains multiple channels (e.g., original image, noise, conf)
+        
         prompts = self.prompt_learner()
         tokenized_prompts = tokenize_prompts(classnames)
         if tokenized_prompts is None:
             return None
+        
         text_features = self.text_encoder(prompts, tokenized_prompts)
-        
-        # Assuming images contain original, map, and conf
-        rgb_image, map_image, conf_image = images[0], images[1], images[2]
-        
-        # Process each image separately
-        rgb_features = self.image_encoder(rgb_image.type(self.dtype))
-        map_features = self.image_encoder(map_image.type(self.dtype))
-        conf_features = self.image_encoder(conf_image.type(self.dtype))
-        
-        # Adapt the features (combine the adapted features from all channels)
-        adapted_rgb_features = self.adapter(rgb_features)
-        adapted_map_features = self.adapter(map_features)
-        adapted_conf_features = self.adapter(conf_features)
 
-        # Sum or concatenate the features from different maps (here summing for simplicity)
-        image_features = (adapted_rgb_features + adapted_map_features + adapted_conf_features) / 3
-        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        # Ensure the input has the correct number of channels for the visual encoder
+        image_features = self.image_encoder(images.type(self.dtype))  # Process the multi-channel image
+        
+        adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
+        image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
         text_features = text_features.to(image_features.dtype)
@@ -316,6 +311,7 @@ class AdapterPrompt(nn.Module):
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
+
 
 
 @TRAINER_REGISTRY.register()
