@@ -142,11 +142,11 @@ class TextEncoder(nn.Module):
 
         # Add positional embedding to prompts
         x = prompts + positional_embedding
-        
-        # Cast tensors to ensure consistent data types (to avoid Float/Half precision mismatch)
+
         x = x.to(self.dtype)
 
         x = x.permute(1, 0, 2)  # NLD -> LND for transformer
+        x = self.ln_final(x).type(self.dtype)
 
         # Update attention mask to match the sequence length
         self._update_attention_mask(seq_length)
@@ -160,6 +160,7 @@ class TextEncoder(nn.Module):
 
         # Take features from the end-of-token (eot) embedding
         x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
+        x = x.to(self.text_projection.dtype)
 
         return x
 
