@@ -351,14 +351,14 @@ class UnifiedTrainer(TrainerX):
             noise_map, conf_map = load_noiseprint(image_path)  # Load the noise and conf maps
 
             # Convert noise_map and conf_map to tensors
-            noise_tensor = torch.tensor(noise_map).unsqueeze(0).to(self.device)
-            conf_tensor = torch.tensor(conf_map).unsqueeze(0).to(self.device)
+            noise_tensor = torch.tensor(noise_map).unsqueeze(0).to(self.device)  # Add channel dimension (1, H, W)
+            conf_tensor = torch.tensor(conf_map).unsqueeze(0).to(self.device)    # Add channel dimension (1, H, W)
 
             # Ensure that noise and conf tensors are of the same size as the image
             if noise_tensor.shape[-2:] != img_tensor.shape[-2:]:
-                noise_tensor = F.interpolate(noise_tensor, size=img_tensor.shape[-2:], mode='bilinear', align_corners=False)
+                noise_tensor = F.interpolate(noise_tensor.unsqueeze(0), size=img_tensor.shape[-2:], mode='bilinear', align_corners=False).squeeze(0)
             if conf_tensor.shape[-2:] != img_tensor.shape[-2:]:
-                conf_tensor = F.interpolate(conf_tensor, size=img_tensor.shape[-2:], mode='bilinear', align_corners=False)
+                conf_tensor = F.interpolate(conf_tensor.unsqueeze(0), size=img_tensor.shape[-2:], mode='bilinear', align_corners=False).squeeze(0)
 
             # Concatenate original image, noise_map, and conf_map along the channel dimension
             combined_img = torch.cat((img_tensor, noise_tensor, conf_tensor), dim=0)  # Combine into 5-channel tensor
@@ -390,6 +390,7 @@ class UnifiedTrainer(TrainerX):
             self.update_lr()
 
         return loss_summary
+
     
     def parse_batch_train(self, batch):
         input = batch["img"]  # Assuming 'img' contains image tensors
