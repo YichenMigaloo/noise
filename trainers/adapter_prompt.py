@@ -101,12 +101,18 @@ def encode_output_path(image_path):
     output_filename = filename + ".npz"
     output_path = os.path.join(new_directory, output_filename)
     return output_path
-def load_noiseprint(image_path):
-    output_path = encode_output_path(image_path)
-    result = np.load(output_path)
-    map = result['map']
-    conf = result['conf']
-    return map, conf
+def load_noiseprint(npz_path):
+    output_path = encode_output_path(npz_path)
+    data = np.load(output_path)
+    map_data = data['map']
+    conf_data = data['conf']
+    
+    # Convert numpy arrays to torch tensors
+    map_tensor = torch.tensor(map_data)
+    conf_tensor = torch.tensor(conf_data)
+    
+    return map_tensor, conf_tensor
+
 
 
 
@@ -319,18 +325,14 @@ class UnifiedTrainer(TrainerX):
         combined_confs = []
 
         for impath in impaths:
-            # For each path in impaths, load the map and conf
             map_data, conf_data = load_noiseprint(impath)
             
-            # Add map and conf to lists
             combined_maps.append(map_data)
             combined_confs.append(conf_data)
 
-        # Convert lists to tensors and stack them into batch format
         combined_maps = torch.stack(combined_maps).to(self.device)
         combined_confs = torch.stack(combined_confs).to(self.device)
 
-        # Here you can combine map and conf or use them as needed in your model
         map_conf_combined = torch.cat([combined_maps, combined_confs], dim=1)  # Example of concatenating along channel dimension
 
         if self.cfg.TRAINER.COOP.PREC == "amp":
@@ -355,6 +357,7 @@ class UnifiedTrainer(TrainerX):
             self.update_lr()
 
         return loss_summary
+
     
     def parse_batch_train(self, batch):
         input = batch["img"]
