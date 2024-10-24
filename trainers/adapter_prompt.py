@@ -178,41 +178,33 @@ class TextEncoder(nn.Module):
         self.attn_mask = None  # Store the attention mask for the transformer
 
     def forward(self, prompts, tokenized_prompts):
-        # Adjust positional embeddings to match the sequence length of prompts
         seq_length = prompts.shape[1]  # Get the sequence length of prompts
 
-        # Extend or slice the positional embeddings to match the prompt sequence length
         if seq_length > self.positional_embedding.shape[0]:
             positional_embedding = self._extend_positional_embeddings(seq_length).type(self.dtype)
         else:
             positional_embedding = self.positional_embedding[:seq_length, :].type(self.dtype)
 
-        # Ensure shapes are compatible for addition
-        if positional_embedding.shape[0] != prompts.shape[1]:
-            raise ValueError(f"Positional embedding shape {positional_embedding.shape} does not match prompt shape {prompts.shape}")
-
-        # Add positional embedding to prompts
         x = prompts + positional_embedding
-        
-        # Cast tensors to ensure consistent data types (to avoid Float/Half precision mismatch)
         x = x.to(self.dtype)
 
         x = x.permute(1, 0, 2)  # NLD -> LND for transformer
-
-        # Update attention mask to match the sequence length
         self._update_attention_mask(seq_length)
 
-        # Use autocast for mixed precision training to ensure the right precision
-        with torch.cuda.amp.autocast():
+        with autocast():
             x = self.transformer(x)  # Pass through transformer
 
         x = x.permute(1, 0, 2)  # LND -> NLD after transformer
         x = self.ln_final(x).type(self.dtype)
 
-        # Take features from the end-of-token (eot) embedding
-        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
+        # Ensure `x` and `text_projection` have the same dtype
+        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)].to(self.text_projection.dtype)  # Align dtype here
+
+        # Matrix multiplication with text projection
+        x = x @ self.text_projection
 
         return x
+
 
     def _extend_positional_embeddings(self, target_length):
         """Extend the positional embeddings to match the required sequence length."""
