@@ -336,7 +336,6 @@ class UnifiedTrainer(TrainerX):
 
         combined_maps = []
         combined_confs = []
-        print(f"map_ shape before transpose: {map_.shape}")
 
         for impath in impaths:
             map_data, conf_data = load_noiseprint(impath)
@@ -345,6 +344,8 @@ class UnifiedTrainer(TrainerX):
             #combined_confs.append(conf_data)
         batch_input = []
         for map_ in combined_maps:
+            print(f"map_ shape before transpose: {map_.shape}")
+
             map_ = np.transpose(map_, (2, 0, 1))  # 转换形状为 (2, H, W)
             batch_input.append(map_)
 
