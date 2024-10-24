@@ -373,16 +373,16 @@ class UnifiedTrainer(TrainerX):
         map, conf = load_noiseprint(image_path)
         
         # Convert numpy.ndarray to PyTorch Tensor
-        map_tensor = torch.from_numpy(map).unsqueeze(0).repeat(1, 3, 1, 1)
-        conf_tensor = torch.from_numpy(conf).unsqueeze(0).repeat(1, 3, 1, 1)
+        map_tensor = torch.from_numpy(map).unsqueeze(0).repeat(1, 3, 1, 1).to(self.device)
+        conf_tensor = torch.from_numpy(conf).unsqueeze(0).repeat(1, 3, 1, 1).to(self.device)
         
         # Resize to match RGB image
-        rgb_image = F.interpolate(rgb_image, size=(224, 224), mode='bilinear', align_corners=False)
+        rgb_image = F.interpolate(rgb_image, size=(224, 224), mode='bilinear', align_corners=False).to(self.device)
         map_tensor = F.interpolate(map_tensor, size=(224, 224), mode='bilinear', align_corners=False)
         conf_tensor = F.interpolate(conf_tensor, size=(224, 224), mode='bilinear', align_corners=False)
         
         # Concatenate along the channel dimension
-        input = torch.cat([rgb_image, map_tensor, conf_tensor], dim=1).to(self.device)  # Concatenate along channel dimension (C)
+        input = torch.cat([rgb_image, map_tensor, conf_tensor], dim=1)  # Concatenate along channel dimension (C)
         label = label.to(self.device)
 
         if self.cfg.TRAINER.COOP.PREC == "amp":
