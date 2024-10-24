@@ -336,6 +336,7 @@ class UnifiedTrainer(TrainerX):
 
         combined_maps = []
         combined_confs = []
+        print(f"map_ shape before transpose: {map_.shape}")
 
         for impath in impaths:
             map_data, conf_data = load_noiseprint(impath)
