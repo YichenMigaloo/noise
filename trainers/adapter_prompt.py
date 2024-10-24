@@ -60,14 +60,6 @@ def load_vit_without_last_layer(cfg):
 
     def forward_without_proj(x):
         x = original_forward(x)
-        class_embedding = self.class_embedding.to(x.dtype)
-    
-        # Check the size of x and class_embedding
-        if class_embedding.shape[-1] != x.shape[-1]:
-            raise RuntimeError(f"Shape mismatch: class_embedding has {class_embedding.shape[-1]} while x has {x.shape[-1]}")
-        
-        x = torch.cat([class_embedding + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device), x], dim=1)
-        
         if hasattr(model.visual, 'proj'):
             x = x  
         return x
