@@ -342,7 +342,18 @@ class UnifiedTrainer(TrainerX):
             
             combined_maps.append(map_data)
             #combined_confs.append(conf_data)
+        batch_input = []
+        for map_ in combined_maps:
+            map_ = np.transpose(map_, (2, 0, 1))  # 转换形状为 (2, H, W)
+            batch_input.append(map_)
 
+        # 将所有输入放到一个 NumPy 数组中，形状应该是 (8, 2, H, W)
+        batch_input = np.stack(batch_input, axis=0)
+
+        # 转换为 PyTorch 张量
+        batch_input_tensor = torch.tensor(batch_input, dtype=torch.float32)  # 转换为张量
+
+        # 将 batch 传入模型
         combined_maps = torch.stack(combined_maps).to(self.device)
         #combined_confs = torch.stack(combined_confs).to(self.device)
         
@@ -351,7 +362,7 @@ class UnifiedTrainer(TrainerX):
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
                 #output = self.model(map_conf_combined, self.dm.dataset.classnames)
-                output = self.model(combined_maps, self.dm.dataset.classnames)
+                output = self.model(batch_input_tensor, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
