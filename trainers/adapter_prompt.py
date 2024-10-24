@@ -254,6 +254,7 @@ class AdapterPrompt(nn.Module):
         super().__init__()
         self.image_encoder = clip_model.visual  
         self.image_projection = nn.Linear(256, 1024)
+        self.class_embedding = nn.Parameter(torch.randn(1, 256))
         self.image_encoder.conv1 = nn.Conv2d(16, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
         self.text_encoder = TextEncoder(clip_model)  
