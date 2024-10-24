@@ -312,20 +312,37 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        image, label,impath = self.parse_batch_train(batch)
-        map,conf = load_noiseprint(impath)
+        impaths = batch['impath']
+        label = batch['label']
+
+        combined_maps = []
+        combined_confs = []
+
+        for impath in impaths:
+            # For each path in impaths, load the map and conf
+            map_data, conf_data = load_noiseprint(impath)
+            
+            # Add map and conf to lists
+            combined_maps.append(map_data)
+            combined_confs.append(conf_data)
+
+        # Convert lists to tensors and stack them into batch format
+        combined_maps = torch.stack(combined_maps).to(self.device)
+        combined_confs = torch.stack(combined_confs).to(self.device)
+
+        # Here you can combine map and conf or use them as needed in your model
+        map_conf_combined = torch.cat([combined_maps, combined_confs], dim=1)  # Example of concatenating along channel dimension
+
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
-                #output = self.model(image, self.dm.dataset.classnames)
-                output = self.model(map, self.dm.dataset.classnames)
+                output = self.model(map_conf_combined, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(self.optim)
             scaler.update()
         else:
-            #output = self.model(image, self.dm.dataset.classnames)
-            output = self.model(map, self.dm.dataset.classnames)
+            output = self.model(map_conf_combined, self.dm.dataset.classnames)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
 
