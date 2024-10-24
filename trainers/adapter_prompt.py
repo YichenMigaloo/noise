@@ -12,7 +12,8 @@ from dassl.optim import build_optimizer, build_lr_scheduler
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 _tokenizer = _Tokenizer()
-
+import os
+import numpy as np
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
@@ -84,7 +85,6 @@ class Adapter(nn.Module):
         x = self.fc(x)
         return x
 
-# Load the Images and Extract Noise Print
 def load_image(image_path):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -94,27 +94,21 @@ def load_image(image_path):
     image = Image.open(image_path).convert('RGB')
     return transform(image).unsqueeze(0)  # Add batch dimension
 
-def extract_noise_print(image):
-    # Dummy noise print extraction (replace with actual noise extraction method)
-    noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
-    return noise
 
-# Merge Function into Existing Code
-def extract_and_fuse_embeddings(model, image_path):
-    # Load the RGB image and the noise print
-    rgb_image = load_image(image_path)
-    noise_print = extract_noise_print(rgb_image)
-    
-    # Combine both images into a batch
-    images = torch.cat((rgb_image, noise_print), dim=0)
-    
-    # Pass through the network to get embeddings
-    embeddings = model(images)
-    
-    # Combine the Embeddings
-    combined_embedding = torch.cat((embeddings[0], embeddings[1]), dim=0)  # Concatenate embeddings
-    
-    return combined_embedding
+def encode_output_path(image_path):
+    directory, filename = os.path.split(image_path)
+    new_directory = directory.replace('/images', '/noiseprint')
+    output_filename = filename + ".npz"
+    output_path = os.path.join(new_directory, output_filename)
+    return output_path
+def load_noiseprint(image_path):
+    output_path = encode_output_path(image_path)
+    result = np.load(output_path)
+    map = result['map']
+    conf = result['conf']
+    return map, conf
+
+
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
@@ -318,18 +312,20 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        image, label = self.parse_batch_train(batch)
-
+        image, label,impath = self.parse_batch_train(batch)
+        map,conf = load_noiseprint(impath)
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
-                output = self.model(image, self.dm.dataset.classnames)
+                #output = self.model(image, self.dm.dataset.classnames)
+                output = self.model(map, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(self.optim)
             scaler.update()
         else:
-            output = self.model(image, self.dm.dataset.classnames)
+            #output = self.model(image, self.dm.dataset.classnames)
+            output = self.model(map, self.dm.dataset.classnames)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
 
@@ -346,6 +342,7 @@ class UnifiedTrainer(TrainerX):
     def parse_batch_train(self, batch):
         input = batch["img"]
         label = batch["label"]
+        impath = batch["impath"]
         input = input.to(self.device)
         label = label.to(self.device)
         return input, label 
