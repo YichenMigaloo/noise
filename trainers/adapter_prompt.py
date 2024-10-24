@@ -253,9 +253,11 @@ class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
         self.image_encoder = clip_model.visual
-        self.image_encoder.conv1 = nn.Conv2d(16, 64, kernel_size=7, stride=2, padding=3, bias=False)
         # 调整 class_embedding 大小为 256 维，匹配 image_encoder 输出
-        self.class_embedding = nn.Parameter(torch.randn(1, 256))  # 改成 256 维度
+        self.class_embedding = nn.Parameter(torch.randn(1, 256))  # 保证维度为 256
+
+        # 添加一个线性层，将 image_features 从 256 投影为 1024
+        self.image_projection = nn.Linear(256, 1024)
 
         # 其他部分保持不变
         self.text_encoder = TextEncoder(clip_model)
@@ -271,8 +273,11 @@ class AdapterPrompt(nn.Module):
             return None
         text_features = self.text_encoder(prompts, tokenized_prompts)
 
-        # 处理 image，通过 image_encoder 得到 256 维输出
+        # 通过 image_encoder 得到 256 维输出
         image_features = self.image_encoder(image.type(self.dtype))
+
+        # 将 image_features 从 256 投影到 1024 维
+        image_features = self.image_projection(image_features)
 
         # 使用 adapter 进行特征变换
         adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
@@ -283,11 +288,12 @@ class AdapterPrompt(nn.Module):
 
         text_features = text_features.to(image_features.dtype)
 
-        # 拼接 image_features 和 class_embedding，确保维度一致
+        # 拼接 image_features 和 text_features，确保维度一致
         logit_scale = self.logit_scale.exp()
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
+
 
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
