@@ -252,14 +252,14 @@ class PromptLearner(nn.Module):
 class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
-        self.image_encoder = clip_model.visual  
-        self.image_projection = nn.Linear(256, 1024)
-        self.class_embedding = nn.Parameter(torch.randn(1, 256))
+        self.image_encoder = clip_model.visual
         self.image_encoder.conv1 = nn.Conv2d(16, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        # 调整 class_embedding 大小为 256 维，匹配 image_encoder 输出
+        self.class_embedding = nn.Parameter(torch.randn(1, 256))  # 改成 256 维度
 
-        self.text_encoder = TextEncoder(clip_model)  
-
-        self.adapter = Adapter(256, 4)
+        # 其他部分保持不变
+        self.text_encoder = TextEncoder(clip_model)
+        self.adapter = Adapter(256, 4)  # 适应 256 维输入
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
@@ -271,22 +271,24 @@ class AdapterPrompt(nn.Module):
             return None
         text_features = self.text_encoder(prompts, tokenized_prompts)
 
+        # 处理 image，通过 image_encoder 得到 256 维输出
         image_features = self.image_encoder(image.type(self.dtype))
 
+        # 使用 adapter 进行特征变换
         adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
-        #adapted_image_features = self.adapter(image_features.to(self.adapter.conv[0].weight.dtype))
-        #adapted_image_features = self.adapter(image_features.to(self.adapter.query.weight.dtype))
-        #adapted_image_features = self.adapter(image_features.to(self.adapter.mlp[0].weight.dtype))
 
+        # 规范化特征
         image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
         text_features = text_features.to(image_features.dtype)
 
+        # 拼接 image_features 和 class_embedding，确保维度一致
         logit_scale = self.logit_scale.exp()
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
+
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
