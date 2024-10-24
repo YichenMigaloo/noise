@@ -345,8 +345,8 @@ class UnifiedTrainer(TrainerX):
         batch_input = []
         for map_ in combined_maps:
             print(f"map_ shape before transpose: {map_.shape}")
-
-            map_ = np.transpose(map_, (2, 0, 1))  # 转换形状为 (2, H, W)
+            map_ = map_.unsqueeze(0)  
+            map_ = map_.repeat(3, 1, 1)
             batch_input.append(map_)
 
         # 将所有输入放到一个 NumPy 数组中，形状应该是 (8, 2, H, W)
