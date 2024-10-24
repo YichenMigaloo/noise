@@ -186,7 +186,8 @@ class ResidualAttentionBlock(nn.Module):
 
         # 确保 q, k, v 的数据类型与 in_proj_weight 一致
         x = x.to(self.attn.in_proj_weight.dtype)
-        
+        x = x.float()  # or .half() if you prefer float16
+
         return self.attn(x, x, x, need_weights=False, attn_mask=self.attn_mask)[0]
     
     def forward(self, x: torch.Tensor):
