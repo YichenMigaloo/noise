@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.cuda.amp import GradScaler, autocast
-import os
+
 from dassl.engine import TRAINER_REGISTRY, TrainerX
 from dassl.metrics import compute_accuracy
 from dassl.utils import load_pretrained_weights, load_checkpoint
@@ -16,8 +16,6 @@ _tokenizer = _Tokenizer()
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
-import cv2
-import numpy as np
 
 # Tokenization function with exception handling
 def tokenize_prompts(classnames):
@@ -50,37 +48,24 @@ def load_vit_without_last_layer(cfg):
     model_path = clip._download(url)
 
     try:
-        model = torch.jit.load(model_path, map_location='cpu').eval()
-        state_dict = None
+        model = torch.jit.load(model_path, map_location = 'cpu').eval()
+        state_dict =None
         model = torch.jit._unwrap_optional(torch.jit._recursive.wrap_cpp_module(model._c))  # unwrap model
+
     except RuntimeError:
         state_dict = torch.load(model_path, map_location="cpu")
-
-    model = clip.build_model(state_dict or model.state_dict())
-
-    # Modify the first convolutional layer to accept 9 channels instead of 3
-    original_conv1 = model.visual.conv1
-    new_conv1 = nn.Conv2d(9, original_conv1.out_channels, kernel_size=original_conv1.kernel_size,
-                          stride=original_conv1.stride, padding=original_conv1.padding, bias=original_conv1.bias is not None)
     
-    # Copy the existing weights to the new convolutional layer
-    with torch.no_grad():
-        new_conv1.weight[:, :3] = original_conv1.weight  # Copy the original weights (3 channels)
-        if new_conv1.weight.shape[1] > 3:
-            nn.init.kaiming_normal_(new_conv1.weight[:, 3:])  # Initialize the additional channels
-
-    model.visual.conv1 = new_conv1
+    model = clip.build_model(state_dict or model.state_dict())
     original_forward = model.visual.forward
 
     def forward_without_proj(x):
         x = original_forward(x)
         if hasattr(model.visual, 'proj'):
-            x = x
+            x = x  
         return x
 
     model.visual.forward = forward_without_proj
     return model
-
 
 # Adapter from the first model
 class Adapter(nn.Module):
@@ -106,67 +91,30 @@ def load_image(image_path):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    if isinstance(image_path, list):
-        image_path = image_path[0]  # If image_path is a list, take the first element
     image = Image.open(image_path).convert('RGB')
-    
-    return transform(image).unsqueeze(0).float()  # Add batch dimension
+    return transform(image).unsqueeze(0)  # Add batch dimension
 
-def encode_output_path(image_path):
-    directory, filename = os.path.split(image_path)
-    new_directory = directory.replace('/images', '/noiseprint')
-    output_filename = filename + ".npz"
-    output_path = os.path.join(new_directory, output_filename)
-    return output_path
+def extract_noise_print(image):
+    # Dummy noise print extraction (replace with actual noise extraction method)
+    noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
+    return noise
 
-def load_noiseprint(image_path):
-    if isinstance(image_path, list):
-        image_path = image_path[0]  # If image_path is a list, take the first element
-    output_path = encode_output_path(image_path)
-    result = np.load(output_path)
-    map = result['map']
-    conf = result['conf']
-    
-    return map,conf
-
+# Merge Function into Existing Code
 def extract_and_fuse_embeddings(model, image_path):
     # Load the RGB image and the noise print
     rgb_image = load_image(image_path)
-    map, conf = load_noiseprint(image_path)
+    noise_print = extract_noise_print(rgb_image)
     
-    # Convert numpy.ndarray to PyTorch Tensor
-    map_tensor = torch.from_numpy(map)
-    conf_tensor = torch.from_numpy(conf)
-
-    # Resize all tensors to the same size, assuming target size is 224x224
-    target_size = (224, 224)  # Target size
-
-    # Ensure map_tensor and conf_tensor dimensions are in (N, C, H, W) format
-    if map_tensor.dim() == 2:  # If map_tensor is 2D
-        map_tensor = map_tensor.unsqueeze(0).unsqueeze(0)  # Expand to (1, 1, H, W)
-    if conf_tensor.dim() == 2:  # If conf_tensor is 2D
-        conf_tensor = conf_tensor.unsqueeze(0).unsqueeze(0)  # Expand to (1, 1, H, W)
-
-    # Resize using F.interpolate
-    rgb_image = F.interpolate(rgb_image, size=target_size, mode='bilinear', align_corners=False)
-    map_tensor = F.interpolate(map_tensor, size=target_size, mode='bilinear', align_corners=False)
-    conf_tensor = F.interpolate(conf_tensor, size=target_size, mode='bilinear', align_corners=False)
-
-    # If needed, repeat map and conf channels to make them 3 channels
-    map_tensor = map_tensor.repeat(1, 3, 1, 1)  # (1, 3, H, W)
-    conf_tensor = conf_tensor.repeat(1, 3, 1, 1)  # (1, 3, H, W)
-
     # Combine both images into a batch
-    images = torch.cat((rgb_image, map_tensor, conf_tensor), dim=0)
+    images = torch.cat((rgb_image, noise_print), dim=0)
     
     # Pass through the network to get embeddings
     embeddings = model(images)
     
     # Combine the Embeddings
-    combined_embedding = torch.cat((embeddings[0], embeddings[1], embeddings[2]), dim=0)  # Concatenate embeddings
+    combined_embedding = torch.cat((embeddings[0], embeddings[1]), dim=0)  # Concatenate embeddings
     
     return combined_embedding
-
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
@@ -179,33 +127,41 @@ class TextEncoder(nn.Module):
         self.attn_mask = None  # Store the attention mask for the transformer
 
     def forward(self, prompts, tokenized_prompts):
+        # Adjust positional embeddings to match the sequence length of prompts
         seq_length = prompts.shape[1]  # Get the sequence length of prompts
 
+        # Extend or slice the positional embeddings to match the prompt sequence length
         if seq_length > self.positional_embedding.shape[0]:
             positional_embedding = self._extend_positional_embeddings(seq_length).type(self.dtype)
         else:
             positional_embedding = self.positional_embedding[:seq_length, :].type(self.dtype)
 
+        # Ensure shapes are compatible for addition
+        if positional_embedding.shape[0] != prompts.shape[1]:
+            raise ValueError(f"Positional embedding shape {positional_embedding.shape} does not match prompt shape {prompts.shape}")
+
+        # Add positional embedding to prompts
         x = prompts + positional_embedding
+        
+        # Cast tensors to ensure consistent data types (to avoid Float/Half precision mismatch)
         x = x.to(self.dtype)
 
         x = x.permute(1, 0, 2)  # NLD -> LND for transformer
+
+        # Update attention mask to match the sequence length
         self._update_attention_mask(seq_length)
 
-        with autocast():
+        # Use autocast for mixed precision training to ensure the right precision
+        with torch.cuda.amp.autocast():
             x = self.transformer(x)  # Pass through transformer
 
         x = x.permute(1, 0, 2)  # LND -> NLD after transformer
         x = self.ln_final(x).type(self.dtype)
 
-        # Ensure `x` and `text_projection` have the same dtype
-        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)].to(self.text_projection.dtype)  # Align dtype here
-
-        # Matrix multiplication with text projection
-        x = x @ self.text_projection
+        # Take features from the end-of-token (eot) embedding
+        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
 
         return x
-
 
     def _extend_positional_embeddings(self, target_length):
         """Extend the positional embeddings to match the required sequence length."""
@@ -306,28 +262,24 @@ class AdapterPrompt(nn.Module):
         tokenized_prompts = tokenize_prompts(classnames)
         if tokenized_prompts is None:
             return None
-
         text_features = self.text_encoder(prompts, tokenized_prompts)
-        
-        image_features = self.image_encoder(image)
-        print(f"Image features dtype: {image_features.dtype}, Text features dtype: {text_features.dtype}")
 
-        # Adapt the image features
-        adapted_image_features = self.adapter(image_features)
-        
-        # Normalize the features and ensure consistent dtype
+        image_features = self.image_encoder(image.type(self.dtype))
+
+        adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.conv[0].weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.query.weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.mlp[0].weight.dtype))
+
         image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-        
-        # Ensure both are in the same dtype
+
         text_features = text_features.to(image_features.dtype)
 
         logit_scale = self.logit_scale.exp()
-        logits = logit_scale * image_features @ text_features.t()  # Matrix multiplication
+        logits = logit_scale * image_features @ text_features.t()
 
         return logits
-
-
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
@@ -366,36 +318,18 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        image_path = batch["impath"]
-        label = batch["label"]
-        
-        # Load RGB image, map, and conf
-        rgb_image = load_image(image_path)
-        map, conf = load_noiseprint(image_path)
-        
-        # Convert numpy.ndarray to PyTorch Tensor
-        map_tensor = torch.from_numpy(map).unsqueeze(0).repeat(1, 3, 1, 1).to(self.device)
-        conf_tensor = torch.from_numpy(conf).unsqueeze(0).repeat(1, 3, 1, 1).to(self.device)
-        
-        # Resize to match RGB image
-        rgb_image = F.interpolate(rgb_image, size=(224, 224), mode='bilinear', align_corners=False).to(self.device)
-        map_tensor = F.interpolate(map_tensor, size=(224, 224), mode='bilinear', align_corners=False)
-        conf_tensor = F.interpolate(conf_tensor, size=(224, 224), mode='bilinear', align_corners=False)
-        
-        # Concatenate along the channel dimension
-        input = torch.cat([rgb_image, map_tensor, conf_tensor], dim=1)  # Concatenate along channel dimension (C)
-        label = label.to(self.device)
+        image, label = self.parse_batch_train(batch)
 
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
-                output = self.model(input, self.dm.dataset.classnames)
+                output = self.model(image, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(self.optim)
             scaler.update()
         else:
-            output = self.model(input, self.dm.dataset.classnames)
+            output = self.model(image, self.dm.dataset.classnames)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
 

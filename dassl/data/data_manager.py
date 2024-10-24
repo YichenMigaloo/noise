@@ -190,7 +190,6 @@ class DatasetWrapper(TorchDataset):
     def __init__(self, cfg, data_source, transform=None, is_train=False):
         self.cfg = cfg
         self.data_source = data_source
-        #self.data_source = [item for item in data_source if item.impath.endswith(".png")]
         self.transform = transform  # accept list (tuple) as input
         self.is_train = is_train
         # Augmenting an image K>1 times is only allowed during training
