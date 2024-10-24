@@ -305,11 +305,12 @@ class AdapterPrompt(nn.Module):
         tokenized_prompts = tokenize_prompts(classnames)
         if tokenized_prompts is None:
             return None
+
         text_features = self.text_encoder(prompts, tokenized_prompts)
+        
+        image_features = self.image_encoder(image)
 
-        image_features = self.image_encoder(image.type(self.dtype))
-
-        adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
+        adapted_image_features = self.adapter(image_features)
         image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
@@ -319,6 +320,7 @@ class AdapterPrompt(nn.Module):
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
+
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
