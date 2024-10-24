@@ -345,4 +345,4 @@ class UnifiedTrainer(TrainerX):
         impath = batch["impath"]
         input = input.to(self.device)
         label = label.to(self.device)
-        return input, label 
+        return input, label, impath
