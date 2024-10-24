@@ -340,25 +340,44 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        
-        impath, label = self.parse_batch_train(batch)
+        # Get the image tensors directly from the batch
+        images, label = self.parse_batch_train(batch)
 
-        # Call extract_and_fuse_embeddings for each image in the batch
-        images = [extract_and_fuse_embeddings(self.model, image_path) for image_path in impath]
+        # Load noise map and confidence map for each image
+        combined_images = []
+        for i, img_tensor in enumerate(images):
+            # Assume image paths or identifiers are available in batch['impath'] (or similar)
+            image_path = batch['impath'][i]  # Adjust this depending on where paths are stored in your data loader
+            noise_map, conf_map = load_noiseprint(image_path)  # Load the noise and conf maps
 
-        # Convert the list of images to a single tensor
-        images = torch.stack(images).to(self.device)  # Combine into a batch tensor
+            # Convert noise_map and conf_map to tensors
+            noise_tensor = torch.tensor(noise_map).unsqueeze(0).to(self.device)
+            conf_tensor = torch.tensor(conf_map).unsqueeze(0).to(self.device)
 
+            # Ensure that noise and conf tensors are of the same size as the image
+            if noise_tensor.shape[-2:] != img_tensor.shape[-2:]:
+                noise_tensor = F.interpolate(noise_tensor, size=img_tensor.shape[-2:], mode='bilinear', align_corners=False)
+            if conf_tensor.shape[-2:] != img_tensor.shape[-2:]:
+                conf_tensor = F.interpolate(conf_tensor, size=img_tensor.shape[-2:], mode='bilinear', align_corners=False)
+
+            # Concatenate original image, noise_map, and conf_map along the channel dimension
+            combined_img = torch.cat((img_tensor, noise_tensor, conf_tensor), dim=0)  # Combine into 5-channel tensor
+            combined_images.append(combined_img)
+
+        # Convert the list of combined images to a single batch tensor
+        combined_images = torch.stack(combined_images).to(self.device)
+
+        # Call the model with combined images and classnames
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
-                output = self.model(images, self.dm.dataset.classnames)
+                output = self.model(combined_images, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(self.optim)
             scaler.update()
         else:
-            output = self.model(images, self.dm.dataset.classnames)
+            output = self.model(combined_images, self.dm.dataset.classnames)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
 
@@ -371,9 +390,9 @@ class UnifiedTrainer(TrainerX):
             self.update_lr()
 
         return loss_summary
-
+    
     def parse_batch_train(self, batch):
-        input = batch["img"]
+        input = batch["img"]  # Assuming 'img' contains image tensors
         label = batch["label"]
         input = input.to(self.device)
         label = label.to(self.device)
