@@ -161,6 +161,7 @@ class TextEncoder(nn.Module):
         # Take features from the end-of-token (eot) embedding
         x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
         x = x.to(self.text_projection.dtype)
+        x = x @ self.text_projection
 
         return x
 
