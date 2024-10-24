@@ -250,8 +250,10 @@ class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
         self.image_encoder = clip_model.visual  
-        self.text_encoder = TextEncoder(clip_model)  
+        self.image_projection = nn.Linear(256, 1024)
         self.image_encoder.conv1 = nn.Conv2d(16, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+        self.text_encoder = TextEncoder(clip_model)  
 
         self.adapter = Adapter(1024, 4)
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
