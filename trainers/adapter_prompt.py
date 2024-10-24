@@ -368,7 +368,7 @@ class UnifiedTrainer(TrainerX):
         maps = []
         for path in impaths:
             map_tensor, conf_tensor = load_noiseprint(path)
-            print(map_tensor,conf_tensor)
+            print(map_tensor.shape, conf_tensor.shape)
             maps.append(map_tensor)
         
         label = batch["label"]
