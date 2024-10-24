@@ -268,32 +268,31 @@ class PromptLearner(nn.Module):
 class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
-        # Assuming the CLIP model's visual encoder is adapted to take multi-channel inputs
-        self.image_encoder = clip_model.visual  # Image encoder from CLIP
-        # Adjust the first convolution layer to accept more input channels (5 channels in this case)
-        self.image_encoder.conv1 = nn.Conv2d(5, 64, kernel_size=7, stride=2, padding=3, bias=False)
-
-        self.text_encoder = TextEncoder(clip_model)  # Use the modified TextEncoder with attention mask
+        # Assume CLIP model visual encoder is adapted to handle 5-channel input
+        self.image_encoder = clip_model.visual
         
-        # Integrating both trainable parts: Adapter and PromptLearner
-        self.adapter = Adapter(1024, 4)  # Adjust dimensions based on your configuration
+        # Adjust first convolution layer to handle 5-channel input
+        self.image_encoder.conv1 = nn.Conv2d(5, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        
+        # Other parts of the model remain the same
+        self.text_encoder = TextEncoder(clip_model)
+        self.adapter = Adapter(1024, 4)
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
 
     def forward(self, images, classnames):
-        # `images` now contains multiple channels (e.g., original image, noise, conf)
+        # Pass images through image encoder (adjusted for 5-channel input)
+        image_features = self.image_encoder(images.type(self.dtype))
         
+        # Use text_encoder and prompt_learner as before
         prompts = self.prompt_learner()
         tokenized_prompts = tokenize_prompts(classnames)
         if tokenized_prompts is None:
             return None
-        
         text_features = self.text_encoder(prompts, tokenized_prompts)
 
-        # Ensure the input has the correct number of channels for the visual encoder
-        image_features = self.image_encoder(images.type(self.dtype))  # Process the multi-channel image
-        
+        # Adapt image features using adapter
         adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
         image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
@@ -304,6 +303,7 @@ class AdapterPrompt(nn.Module):
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
+
 
 
 
