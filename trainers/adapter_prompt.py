@@ -273,10 +273,12 @@ class AdapterPrompt(nn.Module):
         
         # Adjust first convolution layer to handle 5-channel input
         self.image_encoder.conv1 = nn.Conv2d(5, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        
+        output_dim = 64  # This should match the output dim of the image_encoder
+        self.class_embedding = nn.Parameter(torch.randn(1, output_dim))
+
         # Other parts of the model remain the same
         self.text_encoder = TextEncoder(clip_model)
-        self.adapter = Adapter(1024, 4)
+        self.adapter = Adapter(output_dim, 4)
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
