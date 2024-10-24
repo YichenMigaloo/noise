@@ -158,9 +158,10 @@ class TextEncoder(nn.Module):
         x = x.permute(1, 0, 2)  # LND -> NLD after transformer
         x = self.ln_final(x).type(self.dtype)
 
-        # Take features from the end-of-token (eot) embedding
-        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
+        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)]
+
         x = x.to(self.text_projection.dtype)
+
         x = x @ self.text_projection
 
         return x
