@@ -50,24 +50,37 @@ def load_vit_without_last_layer(cfg):
     model_path = clip._download(url)
 
     try:
-        model = torch.jit.load(model_path, map_location = 'cpu').eval()
-        state_dict =None
+        model = torch.jit.load(model_path, map_location='cpu').eval()
+        state_dict = None
         model = torch.jit._unwrap_optional(torch.jit._recursive.wrap_cpp_module(model._c))  # unwrap model
-
     except RuntimeError:
         state_dict = torch.load(model_path, map_location="cpu")
-    
+
     model = clip.build_model(state_dict or model.state_dict())
+
+    # Modify the first convolutional layer to accept 9 channels instead of 3
+    original_conv1 = model.visual.conv1
+    new_conv1 = nn.Conv2d(9, original_conv1.out_channels, kernel_size=original_conv1.kernel_size,
+                          stride=original_conv1.stride, padding=original_conv1.padding, bias=original_conv1.bias is not None)
+    
+    # Copy the existing weights to the new convolutional layer
+    with torch.no_grad():
+        new_conv1.weight[:, :3] = original_conv1.weight  # Copy the original weights (3 channels)
+        if new_conv1.weight.shape[1] > 3:
+            nn.init.kaiming_normal_(new_conv1.weight[:, 3:])  # Initialize the additional channels
+
+    model.visual.conv1 = new_conv1
     original_forward = model.visual.forward
 
     def forward_without_proj(x):
         x = original_forward(x)
         if hasattr(model.visual, 'proj'):
-            x = x  
+            x = x
         return x
 
     model.visual.forward = forward_without_proj
     return model
+
 
 # Adapter from the first model
 class Adapter(nn.Module):
