@@ -8,11 +8,11 @@ from dassl.engine import TRAINER_REGISTRY, TrainerX
 from dassl.metrics import compute_accuracy
 from dassl.utils import load_pretrained_weights, load_checkpoint
 from dassl.optim import build_optimizer, build_lr_scheduler
-
+import numpy as np
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 _tokenizer = _Tokenizer()
-
+import os
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
@@ -94,6 +94,21 @@ def load_image(image_path):
     image = Image.open(image_path).convert('RGB')
     return transform(image).unsqueeze(0)  # Add batch dimension
 
+def encode_output_path(image_path):
+    directory, filename = os.path.split(image_path)
+    new_directory = directory.replace('/images', '/noiseprint')
+    output_filename = filename + ".npz"
+    output_path = os.path.join(new_directory, output_filename)
+    return output_path
+
+def load_noiseprint(image_path):
+    output_path = encode_output_path(image_path)
+    result = np.load(output_path)
+    map = result['map']
+    conf = result['conf']
+    
+    return map,conf
+
 def extract_noise_print(image):
     # Dummy noise print extraction (replace with actual noise extraction method)
     noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
@@ -101,20 +116,33 @@ def extract_noise_print(image):
 
 # Merge Function into Existing Code
 def extract_and_fuse_embeddings(model, image_path):
-    # Load the RGB image and the noise print
+    # Load the RGB image
     rgb_image = load_image(image_path)
-    noise_print = extract_noise_print(rgb_image)
     
-    # Combine both images into a batch
-    images = torch.cat((rgb_image, noise_print), dim=0)
+    # Load noise print (map and conf) from precomputed files
+    map, conf = load_noiseprint(image_path)
+    
+    # Convert map and conf to tensors (assuming they are numpy arrays)
+    map_tensor = torch.tensor(map).unsqueeze(0)  # Add batch dimension
+    conf_tensor = torch.tensor(conf).unsqueeze(0)  # Add batch dimension
+
+    # Ensure map and conf are of the same shape as the image (if necessary, resize or interpolate)
+    if map_tensor.shape[-2:] != rgb_image.shape[-2:]:
+        map_tensor = F.interpolate(map_tensor, size=rgb_image.shape[-2:], mode='bilinear', align_corners=False)
+    if conf_tensor.shape[-2:] != rgb_image.shape[-2:]:
+        conf_tensor = F.interpolate(conf_tensor, size=rgb_image.shape[-2:], mode='bilinear', align_corners=False)
+    
+    # Combine the original image with noise print (map and conf)
+    combined_images = torch.cat((rgb_image, map_tensor, conf_tensor), dim=0)  # 3 input maps
     
     # Pass through the network to get embeddings
-    embeddings = model(images)
+    embeddings = model(combined_images)
     
-    # Combine the Embeddings
-    combined_embedding = torch.cat((embeddings[0], embeddings[1]), dim=0)  # Concatenate embeddings
+    # Combine the Embeddings (optional, depending on how you want to process the embeddings)
+    combined_embedding = torch.cat([emb for emb in embeddings], dim=0)  # Concatenate embeddings
     
     return combined_embedding
+
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
@@ -257,21 +285,29 @@ class AdapterPrompt(nn.Module):
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
 
-    def forward(self, image, classnames):
+    def forward(self, images, classnames):
         prompts = self.prompt_learner()
         tokenized_prompts = tokenize_prompts(classnames)
         if tokenized_prompts is None:
             return None
         text_features = self.text_encoder(prompts, tokenized_prompts)
+        
+        # Assuming images contain original, map, and conf
+        rgb_image, map_image, conf_image = images[0], images[1], images[2]
+        
+        # Process each image separately
+        rgb_features = self.image_encoder(rgb_image.type(self.dtype))
+        map_features = self.image_encoder(map_image.type(self.dtype))
+        conf_features = self.image_encoder(conf_image.type(self.dtype))
+        
+        # Adapt the features (combine the adapted features from all channels)
+        adapted_rgb_features = self.adapter(rgb_features)
+        adapted_map_features = self.adapter(map_features)
+        adapted_conf_features = self.adapter(conf_features)
 
-        image_features = self.image_encoder(image.type(self.dtype))
-
-        adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
-        #adapted_image_features = self.adapter(image_features.to(self.adapter.conv[0].weight.dtype))
-        #adapted_image_features = self.adapter(image_features.to(self.adapter.query.weight.dtype))
-        #adapted_image_features = self.adapter(image_features.to(self.adapter.mlp[0].weight.dtype))
-
-        image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
+        # Sum or concatenate the features from different maps (here summing for simplicity)
+        image_features = (adapted_rgb_features + adapted_map_features + adapted_conf_features) / 3
+        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
         text_features = text_features.to(image_features.dtype)
@@ -281,7 +317,7 @@ class AdapterPrompt(nn.Module):
 
         return logits
 
-# Trainer class combining both models and integrating training for Adapter and PromptLearner
+
 @TRAINER_REGISTRY.register()
 class UnifiedTrainer(TrainerX):
     def build_model(self):
@@ -289,7 +325,6 @@ class UnifiedTrainer(TrainerX):
         classnames = self.dm.dataset.classnames
         print(f"Classnames:{classnames}")
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
-        #clip_model = load_clip_to_cpu(cfg)
         clip_model = load_vit_without_last_layer(cfg)
 
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
@@ -303,12 +338,10 @@ class UnifiedTrainer(TrainerX):
             if "prompt_learner" not in name and "adapter" not in name:
                 param.requires_grad_(False)
 
-        # Ensure optimizer is initialized with trainable parameters
         trainable_params = filter(lambda p: p.requires_grad, self.model.parameters())
         self.optim = build_optimizer(trainable_params, cfg.OPTIM)
         self.sched = build_lr_scheduler(self.optim, cfg.OPTIM)
 
-        # Manual registration of model and optimizer
         self._models["unifiedtrainer"] = self.model
         self._optims["unifiedtrainer"] = self.optim
         self._scheds["unifiedtrainer"] = self.sched
