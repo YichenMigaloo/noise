@@ -180,6 +180,13 @@ class ResidualAttentionBlock(nn.Module):
 
     def attention(self, x: torch.Tensor):
         self.attn_mask = self.attn_mask.to(dtype=x.dtype, device=x.device) if self.attn_mask is not None else None
+        if self.attn_mask is not None:
+            x = x.to(self.attn_mask.dtype)  # 确保输入 x 与 attention mask 的 dtype 一致
+
+        # 强制将 x 转换为和 in_proj_weight 一致的数据类型
+        in_proj_weight_dtype = self.attn.in_proj_weight.dtype
+        x = x.to(in_proj_weight_dtype)
+        
         return self.attn(x, x, x, need_weights=False, attn_mask=self.attn_mask)[0]
     
     def forward(self, x: torch.Tensor):
