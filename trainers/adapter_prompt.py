@@ -340,18 +340,25 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        image, label = self.parse_batch_train(batch)
+        
+        impath, label = self.parse_batch_train(batch)
+
+        # Call extract_and_fuse_embeddings for each image in the batch
+        images = [extract_and_fuse_embeddings(self.model, image_path) for image_path in impath]
+
+        # Convert the list of images to a single tensor
+        images = torch.stack(images).to(self.device)  # Combine into a batch tensor
 
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
-                output = self.model(image, self.dm.dataset.classnames)
+                output = self.model(images, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(self.optim)
             scaler.update()
         else:
-            output = self.model(image, self.dm.dataset.classnames)
+            output = self.model(images, self.dm.dataset.classnames)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
 
@@ -364,7 +371,7 @@ class UnifiedTrainer(TrainerX):
             self.update_lr()
 
         return loss_summary
-    
+
     def parse_batch_train(self, batch):
         input = batch["img"]
         label = batch["label"]
