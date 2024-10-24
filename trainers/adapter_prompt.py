@@ -259,7 +259,7 @@ class AdapterPrompt(nn.Module):
 
         self.text_encoder = TextEncoder(clip_model)  
 
-        self.adapter = Adapter(1024, 4)
+        self.adapter = Adapter(256, 4)
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
