@@ -109,7 +109,8 @@ def load_image(image_path):
     if isinstance(image_path, list):
         image_path = image_path[0]  # If image_path is a list, take the first element
     image = Image.open(image_path).convert('RGB')
-    return transform(image).unsqueeze(0)  # Add batch dimension
+    
+    return transform(image).unsqueeze(0).float()  # Add batch dimension
 
 def encode_output_path(image_path):
     directory, filename = os.path.split(image_path)
@@ -309,17 +310,23 @@ class AdapterPrompt(nn.Module):
         text_features = self.text_encoder(prompts, tokenized_prompts)
         
         image_features = self.image_encoder(image)
+        print(f"Image features dtype: {image_features.dtype}, Text features dtype: {text_features.dtype}")
 
+        # Adapt the image features
         adapted_image_features = self.adapter(image_features)
+        
+        # Normalize the features and ensure consistent dtype
         image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-
+        
+        # Ensure both are in the same dtype
         text_features = text_features.to(image_features.dtype)
 
         logit_scale = self.logit_scale.exp()
-        logits = logit_scale * image_features @ text_features.t()
+        logits = logit_scale * image_features @ text_features.t()  # Matrix multiplication
 
         return logits
+
 
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
