@@ -253,12 +253,9 @@ class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
         self.image_encoder = clip_model.visual
-        self.image_encoder.conv1 = nn.Conv2d(16, 16, kernel_size=7, stride=2, padding=3, bias=False)
         # 调整 class_embedding 大小为 256 维，匹配 image_encoder 输出
         self.class_embedding = nn.Parameter(torch.randn(1, 256))  # 保证维度为 256
 
-        # 添加一个线性层，将 image_features 从 256 投影为 1024
-        self.image_projection = nn.Linear(256, 1024)
 
         # 其他部分保持不变
         self.text_encoder = TextEncoder(clip_model)
