@@ -356,7 +356,7 @@ class UnifiedTrainer(TrainerX):
         batch_input_tensor = torch.tensor(batch_input, dtype=torch.float32)  # 转换为张量
 
         # 将 batch 传入模型
-        #combined_maps = torch.stack(combined_maps).to(self.device)
+        batch_input_tensor = torch.stack(batch_input_tensor).to(self.device)
         #combined_confs = torch.stack(combined_confs).to(self.device)
         
         #map_conf_combined = torch.cat([combined_maps, combined_confs], dim=1)  # Example of concatenating along channel dimension
