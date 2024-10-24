@@ -281,7 +281,23 @@ class AdapterPrompt(nn.Module):
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
-
+def encode_output_path(image_path):
+        directory, filename = os.path.split(image_path)
+        new_directory = directory.replace('/images', '/noiseprint')
+        output_filename = filename + ".npz"
+        output_path = os.path.join(new_directory, output_filename)
+        return output_path
+def load_noiseprint(npz_path):
+        output_path = encode_output_path(npz_path)
+        data = np.load(output_path)
+        map_data = data['map']
+        conf_data = data['conf']
+        
+        # Convert numpy arrays to torch tensors
+        map_tensor = torch.tensor(map_data)
+        conf_tensor = torch.tensor(conf_data)
+        
+        return map_tensor, conf_tensor
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
 class UnifiedTrainer(TrainerX):
@@ -344,23 +360,7 @@ class UnifiedTrainer(TrainerX):
 
         return loss_summary
     
-    def encode_output_path(image_path):
-        directory, filename = os.path.split(image_path)
-        new_directory = directory.replace('/images', '/noiseprint')
-        output_filename = filename + ".npz"
-        output_path = os.path.join(new_directory, output_filename)
-        return output_path
-    def load_noiseprint(npz_path):
-        output_path = encode_output_path(npz_path)
-        data = np.load(output_path)
-        map_data = data['map']
-        conf_data = data['conf']
-        
-        # Convert numpy arrays to torch tensors
-        map_tensor = torch.tensor(map_data)
-        conf_tensor = torch.tensor(conf_data)
-        
-        return map_tensor, conf_tensor
+    
 
     def parse_batch_train(self, batch):
         input = batch["img"]
