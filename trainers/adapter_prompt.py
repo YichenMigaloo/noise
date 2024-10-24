@@ -377,7 +377,7 @@ class UnifiedTrainer(TrainerX):
             scaler.update()
         else:
             #output = self.model(map_conf_combined, self.dm.dataset.classnames)
-            output = self.model(combined_maps, self.dm.dataset.classnames)
+            output = self.model(batch_input_tensor, self.dm.dataset.classnames)
 
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
