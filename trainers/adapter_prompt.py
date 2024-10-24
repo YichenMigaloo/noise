@@ -85,6 +85,7 @@ class Adapter(nn.Module):
         x = self.fc(x)
         return x
 
+# Load the Images and Extract Noise Print
 def load_image(image_path):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -94,27 +95,27 @@ def load_image(image_path):
     image = Image.open(image_path).convert('RGB')
     return transform(image).unsqueeze(0)  # Add batch dimension
 
+def extract_noise_print(image):
+    # Dummy noise print extraction (replace with actual noise extraction method)
+    noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
+    return noise
 
-def encode_output_path(image_path):
-    directory, filename = os.path.split(image_path)
-    new_directory = directory.replace('/images', '/noiseprint')
-    output_filename = filename + ".npz"
-    output_path = os.path.join(new_directory, output_filename)
-    return output_path
-def load_noiseprint(npz_path):
-    output_path = encode_output_path(npz_path)
-    data = np.load(output_path)
-    map_data = data['map']
-    conf_data = data['conf']
+# Merge Function into Existing Code
+def extract_and_fuse_embeddings(model, image_path):
+    # Load the RGB image and the noise print
+    rgb_image = load_image(image_path)
+    noise_print = extract_noise_print(rgb_image)
     
-    # Convert numpy arrays to torch tensors
-    map_tensor = torch.tensor(map_data)
-    conf_tensor = torch.tensor(conf_data)
+    # Combine both images into a batch
+    images = torch.cat((rgb_image, noise_print), dim=0)
     
-    return map_tensor, conf_tensor
-
-
-
+    # Pass through the network to get embeddings
+    embeddings = model(images)
+    
+    # Combine the Embeddings
+    combined_embedding = torch.cat((embeddings[0], embeddings[1]), dim=0)  # Concatenate embeddings
+    
+    return combined_embedding
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
@@ -142,11 +143,11 @@ class TextEncoder(nn.Module):
 
         # Add positional embedding to prompts
         x = prompts + positional_embedding
-
+        
+        # Cast tensors to ensure consistent data types (to avoid Float/Half precision mismatch)
         x = x.to(self.dtype)
 
         x = x.permute(1, 0, 2)  # NLD -> LND for transformer
-        x = self.ln_final(x).type(self.dtype)
 
         # Update attention mask to match the sequence length
         self._update_attention_mask(seq_length)
@@ -158,11 +159,8 @@ class TextEncoder(nn.Module):
         x = x.permute(1, 0, 2)  # LND -> NLD after transformer
         x = self.ln_final(x).type(self.dtype)
 
-        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)]
-
-        x = x.to(self.text_projection.dtype)
-
-        x = x @ self.text_projection
+        # Take features from the end-of-token (eot) embedding
+        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
 
         return x
 
@@ -252,14 +250,10 @@ class PromptLearner(nn.Module):
 class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
-        self.image_encoder = clip_model.visual
-        # 调整 class_embedding 大小为 256 维，匹配 image_encoder 输出
-        self.class_embedding = nn.Parameter(torch.randn(1, 256))  # 保证维度为 256
-
-
-        # 其他部分保持不变
-        self.text_encoder = TextEncoder(clip_model)
-        self.adapter = Adapter(256, 4)  # 适应 256 维输入
+        self.image_encoder = clip_model.visual  # Image encoder from CLIP
+        self.text_encoder = TextEncoder(clip_model)  # Use the modified TextEncoder with attention mask
+        # Integrating both trainable parts: Adapter and PromptLearner
+        self.adapter = Adapter(1024, 4)
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
@@ -271,28 +265,22 @@ class AdapterPrompt(nn.Module):
             return None
         text_features = self.text_encoder(prompts, tokenized_prompts)
 
-        # 通过 image_encoder 得到 256 维输出
         image_features = self.image_encoder(image.type(self.dtype))
 
-        # 将 image_features 从 256 投影到 1024 维
-        image_features = self.image_projection(image_features)
-
-        # 使用 adapter 进行特征变换
         adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.conv[0].weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.query.weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.mlp[0].weight.dtype))
 
-        # 规范化特征
         image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
         text_features = text_features.to(image_features.dtype)
 
-        # 拼接 image_features 和 text_features，确保维度一致
         logit_scale = self.logit_scale.exp()
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
-
-
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
@@ -331,54 +319,18 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        impaths = batch['impath']
-        label = batch['label']
+        image, label = self.parse_batch_train(batch)
 
-        combined_maps = []
-        combined_confs = []
-
-        for impath in impaths:
-            map_data, conf_data = load_noiseprint(impath)
-            
-            combined_maps.append(map_data)
-            #combined_confs.append(conf_data)
-        batch_input = []
-        for map_ in combined_maps:
-            print(f"map_ shape before transpose: {map_.shape}")
-            map_ = map_.unsqueeze(0)  
-            map_ = map_.repeat(3, 1, 1)
-            batch_input.append(map_)
-
-        # 将所有输入放到一个 NumPy 数组中，形状应该是 (8, 2, H, W)
-        batch_input = np.stack(batch_input, axis=0)
-
-        # 转换为 PyTorch 张量
-        batch_input_tensor = torch.tensor(batch_input, dtype=torch.float32)  # 转换为张量
-
-        # 将 batch 传入模型
-        # 确保 batch_input_tensor 是一个列表且包含张量
-        batch_input_tensor = [tensor for tensor in batch_input_tensor if isinstance(tensor, torch.Tensor)]
-
-        # 然后进行堆叠
-        batch_input_tensor = torch.stack(batch_input_tensor).to(self.device)
-
-        #combined_confs = torch.stack(combined_confs).to(self.device)
-        
-        #map_conf_combined = torch.cat([combined_maps, combined_confs], dim=1)  # Example of concatenating along channel dimension
-        
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
-                #output = self.model(map_conf_combined, self.dm.dataset.classnames)
-                output = self.model(batch_input_tensor, self.dm.dataset.classnames)
+                output = self.model(image, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(self.optim)
             scaler.update()
         else:
-            #output = self.model(map_conf_combined, self.dm.dataset.classnames)
-            output = self.model(batch_input_tensor, self.dm.dataset.classnames)
-
+            output = self.model(image, self.dm.dataset.classnames)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
 
@@ -391,12 +343,30 @@ class UnifiedTrainer(TrainerX):
             self.update_lr()
 
         return loss_summary
-
     
+    def encode_output_path(image_path):
+        directory, filename = os.path.split(image_path)
+        new_directory = directory.replace('/images', '/noiseprint')
+        output_filename = filename + ".npz"
+        output_path = os.path.join(new_directory, output_filename)
+        return output_path
+    def load_noiseprint(npz_path):
+        output_path = encode_output_path(npz_path)
+        data = np.load(output_path)
+        map_data = data['map']
+        conf_data = data['conf']
+        
+        # Convert numpy arrays to torch tensors
+        map_tensor = torch.tensor(map_data)
+        conf_tensor = torch.tensor(conf_data)
+        
+        return map_tensor, conf_tensor
+
     def parse_batch_train(self, batch):
         input = batch["img"]
+        impaths = batch["impath"]
         label = batch["label"]
-        impath = batch["impath"]
         input = input.to(self.device)
         label = label.to(self.device)
-        return input, label, impath
+        print(batch)
+        return input, label
