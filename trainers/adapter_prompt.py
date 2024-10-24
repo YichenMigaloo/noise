@@ -365,8 +365,13 @@ class UnifiedTrainer(TrainerX):
     def parse_batch_train(self, batch):
         input = batch["img"]
         impaths = batch["impath"]
+        maps = []
+        for path in impaths:
+            map_tensor, conf_tensor = load_noiseprint(path)
+            print(map_tensor,conf_tensor)
+            maps.append(map_tensor)
+        
         label = batch["label"]
         input = input.to(self.device)
         label = label.to(self.device)
-        print(batch)
         return input, label
