@@ -8,11 +8,11 @@ from dassl.engine import TRAINER_REGISTRY, TrainerX
 from dassl.metrics import compute_accuracy
 from dassl.utils import load_pretrained_weights, load_checkpoint
 from dassl.optim import build_optimizer, build_lr_scheduler
-import numpy as np
+
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 _tokenizer = _Tokenizer()
-import os
+
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
@@ -94,21 +94,6 @@ def load_image(image_path):
     image = Image.open(image_path).convert('RGB')
     return transform(image).unsqueeze(0)  # Add batch dimension
 
-def encode_output_path(image_path):
-    directory, filename = os.path.split(image_path)
-    new_directory = directory.replace('/images', '/noiseprint')
-    output_filename = filename + ".npz"
-    output_path = os.path.join(new_directory, output_filename)
-    return output_path
-
-def load_noiseprint(image_path):
-    output_path = encode_output_path(image_path)
-    result = np.load(output_path)
-    map = result['map']
-    conf = result['conf']
-    
-    return map,conf
-
 def extract_noise_print(image):
     # Dummy noise print extraction (replace with actual noise extraction method)
     noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
@@ -116,31 +101,20 @@ def extract_noise_print(image):
 
 # Merge Function into Existing Code
 def extract_and_fuse_embeddings(model, image_path):
-    # Load the RGB image
+    # Load the RGB image and the noise print
     rgb_image = load_image(image_path)
+    noise_print = extract_noise_print(rgb_image)
     
-    # Load noise print (map and conf) from precomputed files
-    noise_map, conf_map = load_noiseprint(image_path)
+    # Combine both images into a batch
+    images = torch.cat((rgb_image, noise_print), dim=0)
     
-    # Convert map and conf to tensors (assuming they are numpy arrays)
-    noise_tensor = torch.tensor(noise_map).unsqueeze(0)  # Add batch dimension
-    conf_tensor = torch.tensor(conf_map).unsqueeze(0)  # Add batch dimension
-
-    # Ensure noise and conf are resized to match the image size (if necessary)
-    if noise_tensor.shape[-2:] != rgb_image.shape[-2:]:
-        noise_tensor = F.interpolate(noise_tensor, size=rgb_image.shape[-2:], mode='bilinear', align_corners=False)
-    if conf_tensor.shape[-2:] != rgb_image.shape[-2:]:
-        conf_tensor = F.interpolate(conf_tensor, size=rgb_image.shape[-2:], mode='bilinear', align_corners=False)
-
-    # Concatenate the original image, noise_map, and conf_map along the channel dimension
-    combined_image = torch.cat((rgb_image, noise_tensor, conf_tensor), dim=1)  # Concatenating along channel dimension
+    # Pass through the network to get embeddings
+    embeddings = model(images)
     
-    # Pass the multi-channel image through the model
-    embeddings = model(combined_image)
+    # Combine the Embeddings
+    combined_embedding = torch.cat((embeddings[0], embeddings[1]), dim=0)  # Concatenate embeddings
     
-    return embeddings
-
-
+    return combined_embedding
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
@@ -156,29 +130,36 @@ class TextEncoder(nn.Module):
         # Adjust positional embeddings to match the sequence length of prompts
         seq_length = prompts.shape[1]  # Get the sequence length of prompts
 
+        # Extend or slice the positional embeddings to match the prompt sequence length
         if seq_length > self.positional_embedding.shape[0]:
             positional_embedding = self._extend_positional_embeddings(seq_length).type(self.dtype)
         else:
             positional_embedding = self.positional_embedding[:seq_length, :].type(self.dtype)
 
+        # Ensure shapes are compatible for addition
+        if positional_embedding.shape[0] != prompts.shape[1]:
+            raise ValueError(f"Positional embedding shape {positional_embedding.shape} does not match prompt shape {prompts.shape}")
+
+        # Add positional embedding to prompts
         x = prompts + positional_embedding
-        x = x.to(self.dtype)  # Ensure dtype consistency
+        
+        # Cast tensors to ensure consistent data types (to avoid Float/Half precision mismatch)
+        x = x.to(self.dtype)
 
         x = x.permute(1, 0, 2)  # NLD -> LND for transformer
 
+        # Update attention mask to match the sequence length
         self._update_attention_mask(seq_length)
 
-        # Use autocast for mixed precision training
-        with autocast():
-            x = self.transformer(x)
+        # Use autocast for mixed precision training to ensure the right precision
+        with torch.cuda.amp.autocast():
+            x = self.transformer(x)  # Pass through transformer
 
         x = x.permute(1, 0, 2)  # LND -> NLD after transformer
         x = self.ln_final(x).type(self.dtype)
 
-        # Ensure x and self.text_projection have the same dtype
-        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)]
-        x = x.to(self.text_projection.dtype)  # Ensure x is the same dtype as text_projection
-        x = x @ self.text_projection
+        # Take features from the end-of-token (eot) embedding
+        x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
 
         return x
 
@@ -268,34 +249,28 @@ class PromptLearner(nn.Module):
 class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
-        # Assume CLIP model visual encoder is adapted to handle 5-channel input
-        self.image_encoder = clip_model.visual
-        
-        # Adjust first convolution layer to handle 5-channel input
-        self.image_encoder.conv1 = nn.Conv2d(5, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        output_dim = 64  # This should match the output dim of the image_encoder
-        self.class_embedding = nn.Parameter(torch.randn(1, output_dim))
-
-        # Other parts of the model remain the same
-        self.text_encoder = TextEncoder(clip_model)
-        self.adapter = Adapter(output_dim, 4)
+        self.image_encoder = clip_model.visual  # Image encoder from CLIP
+        self.text_encoder = TextEncoder(clip_model)  # Use the modified TextEncoder with attention mask
+        # Integrating both trainable parts: Adapter and PromptLearner
+        self.adapter = Adapter(1024, 4)
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
 
-    def forward(self, images, classnames):
-        # Pass images through image encoder (adjusted for 5-channel input)
-        image_features = self.image_encoder(images.type(self.dtype))
-        
-        # Use text_encoder and prompt_learner as before
+    def forward(self, image, classnames):
         prompts = self.prompt_learner()
         tokenized_prompts = tokenize_prompts(classnames)
         if tokenized_prompts is None:
             return None
         text_features = self.text_encoder(prompts, tokenized_prompts)
 
-        # Adapt image features using adapter
+        image_features = self.image_encoder(image.type(self.dtype))
+
         adapted_image_features = self.adapter(image_features.to(self.adapter.fc[0].weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.conv[0].weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.query.weight.dtype))
+        #adapted_image_features = self.adapter(image_features.to(self.adapter.mlp[0].weight.dtype))
+
         image_features = adapted_image_features / adapted_image_features.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
@@ -306,9 +281,7 @@ class AdapterPrompt(nn.Module):
 
         return logits
 
-
-
-
+# Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
 class UnifiedTrainer(TrainerX):
     def build_model(self):
@@ -316,6 +289,7 @@ class UnifiedTrainer(TrainerX):
         classnames = self.dm.dataset.classnames
         print(f"Classnames:{classnames}")
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
+        #clip_model = load_clip_to_cpu(cfg)
         clip_model = load_vit_without_last_layer(cfg)
 
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
@@ -329,10 +303,12 @@ class UnifiedTrainer(TrainerX):
             if "prompt_learner" not in name and "adapter" not in name:
                 param.requires_grad_(False)
 
+        # Ensure optimizer is initialized with trainable parameters
         trainable_params = filter(lambda p: p.requires_grad, self.model.parameters())
         self.optim = build_optimizer(trainable_params, cfg.OPTIM)
         self.sched = build_lr_scheduler(self.optim, cfg.OPTIM)
 
+        # Manual registration of model and optimizer
         self._models["unifiedtrainer"] = self.model
         self._optims["unifiedtrainer"] = self.optim
         self._scheds["unifiedtrainer"] = self.sched
@@ -342,44 +318,18 @@ class UnifiedTrainer(TrainerX):
             self.model = nn.DataParallel(self.model)
 
     def forward_backward(self, batch):
-        # Get the image tensors directly from the batch
-        images, label = self.parse_batch_train(batch)
+        image, label = self.parse_batch_train(batch)
 
-        # Load noise map and confidence map for each image
-        combined_images = []
-        for i, img_tensor in enumerate(images):
-            # Assume image paths or identifiers are available in batch['impath'] (or similar)
-            image_path = batch['impath'][i]  # Adjust this depending on where paths are stored in your data loader
-            noise_map, conf_map = load_noiseprint(image_path)  # Load the noise and conf maps
-
-            # Convert noise_map and conf_map to tensors
-            noise_tensor = torch.tensor(noise_map).unsqueeze(0).to(self.device)  # Add channel dimension (1, H, W)
-            conf_tensor = torch.tensor(conf_map).unsqueeze(0).to(self.device)    # Add channel dimension (1, H, W)
-
-            # Ensure that noise and conf tensors are of the same size as the image
-            if noise_tensor.shape[-2:] != img_tensor.shape[-2:]:
-                noise_tensor = F.interpolate(noise_tensor.unsqueeze(0), size=img_tensor.shape[-2:], mode='bilinear', align_corners=False).squeeze(0)
-            if conf_tensor.shape[-2:] != img_tensor.shape[-2:]:
-                conf_tensor = F.interpolate(conf_tensor.unsqueeze(0), size=img_tensor.shape[-2:], mode='bilinear', align_corners=False).squeeze(0)
-
-            # Concatenate original image, noise_map, and conf_map along the channel dimension
-            combined_img = torch.cat((img_tensor, noise_tensor, conf_tensor), dim=0)  # Combine into 5-channel tensor
-            combined_images.append(combined_img)
-
-        # Convert the list of combined images to a single batch tensor
-        combined_images = torch.stack(combined_images).to(self.device)
-
-        # Call the model with combined images and classnames
         if self.cfg.TRAINER.COOP.PREC == "amp":
             with autocast():
-                output = self.model(combined_images, self.dm.dataset.classnames)
+                output = self.model(image, self.dm.dataset.classnames)
                 loss = F.cross_entropy(output, label)
             self.optim.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(self.optim)
             scaler.update()
         else:
-            output = self.model(combined_images, self.dm.dataset.classnames)
+            output = self.model(image, self.dm.dataset.classnames)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
 
@@ -392,11 +342,10 @@ class UnifiedTrainer(TrainerX):
             self.update_lr()
 
         return loss_summary
-
     
     def parse_batch_train(self, batch):
-        input = batch["img"]  # Assuming 'img' contains image tensors
+        input = batch["img"]
         label = batch["label"]
         input = input.to(self.device)
         label = label.to(self.device)
-        return input, label
+        return input, label 
