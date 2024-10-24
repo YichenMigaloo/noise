@@ -249,9 +249,10 @@ class PromptLearner(nn.Module):
 class AdapterPrompt(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
-        self.image_encoder = clip_model.visual  # Image encoder from CLIP
-        self.text_encoder = TextEncoder(clip_model)  # Use the modified TextEncoder with attention mask
-        # Integrating both trainable parts: Adapter and PromptLearner
+        self.image_encoder = clip_model.visual  
+        self.text_encoder = TextEncoder(clip_model)  
+        self.image_encoder.conv1 = nn.Conv2d(16, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
         self.adapter = Adapter(1024, 4)
         self.prompt_learner = PromptLearner(cfg, classnames, clip_model)
         self.logit_scale = clip_model.logit_scale
