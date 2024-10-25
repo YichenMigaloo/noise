@@ -390,6 +390,7 @@ class UnifiedTrainer(TrainerX):
         maps_cropped = [prepare_and_crop_map(map) for map in maps]
         maps_batch = torch.stack(maps_cropped)
         label = batch["label"]
-        input = input.to(self.device)
+        #input = input.to(self.device)
+        maps_batch = maps_batch.to(self.device)
         label = label.to(self.device)
         return maps_batch, label
