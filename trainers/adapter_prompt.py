@@ -324,7 +324,7 @@ def prepare_custom_map(map, conf):
         conf = conf.unsqueeze(0)  
     target_size = (224,224)
     transform = transforms.CenterCrop(target_size)
-    map = transform(map)
+    map = transform(conf)
     map = map.repeat(3, 1, 1)
     
     
