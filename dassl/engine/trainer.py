@@ -37,20 +37,20 @@ def load_noiseprint(npz_path):
         
         return map_tensor, conf_tensor
 
-def prepare_and_crop_map(map, target_size=(224, 224)):
-    # 如果 map 是 [height, width]，加上通道维度
-    if len(map.shape) == 2:  # [height, width]
-        map = map.unsqueeze(0)  # 变成 [1, height, width]
+def prepare_custom_map(map, conf):
+    # 确保 map 和 conf 是 2D 的 [H, W]
+    if len(map.shape) == 2:
+        map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
+    if len(conf.shape) == 2:
+        conf = conf.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
     
-    # 如果 map 是单通道 [1, height, width]，扩展到 3 通道
-    if map.shape[0] == 1:
-        map = map.repeat(3, 1, 1)  # 复制通道，变为 [3, height, width]
+    # 创建一个与 map 相同大小的空白层
+    blank = torch.zeros_like(map)  # 生成一个全零张量 [1, H, W]
 
-    # 使用中心裁剪将 map 裁剪到 (224, 224)
-    transform = transforms.CenterCrop(target_size)
-    map = transform(map)
+    # 将 map, conf 和空白层拼接在一起，最终得到 [3, H, W] 的张量
+    combined = torch.cat((map, conf, blank), dim=0)
     
-    return map
+    return combined
 
 class SimpleNet(nn.Module):
     """A simple neural network composed of a CNN backbone
@@ -629,14 +629,33 @@ class TrainerXU(SimpleTrainer):
 
     def parse_batch_train(self, batch_x, batch_u):
         input_x = batch_x["img"]
+        impath_x = batch_x["impath"]
         label_x = batch_x["label"]
         input_u = batch_u["img"]
+        impath_u = batch_u["impath"]
 
-        input_x = input_x.to(self.device)
+        maps_x = []
+        maps_u = []
+        for _ in impath_x:
+            map_tensor, conf_tensor = load_noiseprint(_)
+            temp = prepare_custom_map(map_tensor, conf_tensor)
+            maps_x.append(temp)
+        
+        for _ in impath_u:
+            map_tensor, conf_tensor = load_noiseprint(_)
+            temp = prepare_custom_map(map_tensor, conf_tensor)
+            maps_u.append(temp)
+
+        '''input_x = input_x.to(self.device)
         label_x = label_x.to(self.device)
-        input_u = input_u.to(self.device)
+        input_u = input_u.to(self.device)'''
 
-        return input_x, label_x, input_u
+        maps_x = maps_x.to(self.device)
+        label_x = label_x.to(self.device)
+        maps_u = maps_u.to(self.device)
+
+        #return input_x, label_x, input_u
+        return maps_x, label_x, maps_u
 
 
 class TrainerX(SimpleTrainer):
@@ -691,14 +710,13 @@ class TrainerX(SimpleTrainer):
         for path in impaths:
             map_tensor, conf_tensor = load_noiseprint(path)
             #print(map_tensor.shape, conf_tensor.shape)
-            maps.append(conf_tensor)
+            temp = prepare_custom_map(map_tensor, conf_tensor)
+            maps.append(temp)
             #print(len(maps),maps[0].shape)
-        maps_cropped = [prepare_and_crop_map(map) for map in maps]
-        maps_batch = torch.stack(maps_cropped)
+        maps_batch = torch.stack(temp)
         label = batch["label"]
         #input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
-        label = label.to(self.device)
         domain = batch["domain"]
         #input = input.to(self.device)
         label = label.to(self.device)
