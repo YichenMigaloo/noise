@@ -656,7 +656,7 @@ class TrainerXU(SimpleTrainer):
         maps_x = maps_x.to(self.device)
         label_x = label_x.to(self.device)
         maps_u = maps_u.to(self.device)
-        print("maps_x",maps_x.shape,"maps_u", maps_u.shape)
+        #print("maps_x",maps_x.shape,"maps_u", maps_u.shape)
         #return input_x, label_x, input_u
         return maps_x, label_x, maps_u
 
@@ -717,7 +717,7 @@ class TrainerX(SimpleTrainer):
             maps.append(temp)
             #print(len(maps),maps[0].shape)
         maps_batch = torch.stack(temp)
-        print("maps_batch",maps_batch.shape)
+        #print("maps_batch",maps_batch.shape)
 
         label = batch["label"]
         #input = input.to(self.device)
