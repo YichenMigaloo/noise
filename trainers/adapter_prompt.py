@@ -386,7 +386,7 @@ class UnifiedTrainer(TrainerX):
             map_tensor, conf_tensor = load_noiseprint(path)
             #print(map_tensor.shape, conf_tensor.shape)
             maps.append(map_tensor)
-            print(len(maps),maps[0].shape)
+            #print(len(maps),maps[0].shape)
         maps_cropped = [prepare_and_crop_map(map) for map in maps]
         maps_batch = torch.stack(maps_cropped)
         label = batch["label"]
