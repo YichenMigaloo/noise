@@ -389,6 +389,7 @@ class UnifiedTrainer(TrainerX):
             #print(len(maps),maps[0].shape)
        
         maps_batch = torch.stack(maps)
+        print(maps_batch.shape)
         label = batch["label"]
         #input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
