@@ -7,7 +7,8 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
-
+import os
+import torchvision.transforms as transforms
 
 from dassl.data import DataManager
 from dassl.optim import build_optimizer, build_lr_scheduler
@@ -18,7 +19,38 @@ from dassl.utils import (
 )
 from dassl.modeling import build_head, build_backbone
 from dassl.evaluation import build_evaluator
+def encode_output_path(image_path):
+        directory, filename = os.path.split(image_path)
+        new_directory = directory.replace('/images', '/noiseprint')
+        output_filename = filename + ".npz"
+        output_path = os.path.join(new_directory, output_filename)
+        return output_path
+def load_noiseprint(npz_path):
+        output_path = encode_output_path(npz_path)
+        data = np.load(output_path)
+        map_data = data['map']
+        conf_data = data['conf']
+        
+        # Convert numpy arrays to torch tensors
+        map_tensor = torch.tensor(map_data)
+        conf_tensor = torch.tensor(conf_data)
+        
+        return map_tensor, conf_tensor
 
+def prepare_and_crop_map(map, target_size=(224, 224)):
+    # 如果 map 是 [height, width]，加上通道维度
+    if len(map.shape) == 2:  # [height, width]
+        map = map.unsqueeze(0)  # 变成 [1, height, width]
+    
+    # 如果 map 是单通道 [1, height, width]，扩展到 3 通道
+    if map.shape[0] == 1:
+        map = map.repeat(3, 1, 1)  # 复制通道，变为 [3, height, width]
+
+    # 使用中心裁剪将 map 裁剪到 (224, 224)
+    transform = transforms.CenterCrop(target_size)
+    map = transform(map)
+    
+    return map
 
 class SimpleNet(nn.Module):
     """A simple neural network composed of a CNN backbone
@@ -654,11 +686,22 @@ class TrainerX(SimpleTrainer):
 
     def parse_batch_train(self, batch):
         input = batch["img"]
+        impaths = batch["impath"]
+        maps = []
+        for path in impaths:
+            map_tensor, conf_tensor = load_noiseprint(path)
+            #print(map_tensor.shape, conf_tensor.shape)
+            maps.append(map_tensor)
+            #print(len(maps),maps[0].shape)
+        maps_cropped = [prepare_and_crop_map(map) for map in maps]
+        maps_batch = torch.stack(maps_cropped)
         label = batch["label"]
+        #input = input.to(self.device)
+        maps_batch = maps_batch.to(self.device)
+        label = label.to(self.device)
         domain = batch["domain"]
-
-        input = input.to(self.device)
+        #input = input.to(self.device)
         label = label.to(self.device)
         domain = domain.to(self.device)
 
-        return input, label, domain
+        return maps_batch, label, domain
