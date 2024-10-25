@@ -299,7 +299,7 @@ def load_noiseprint(npz_path):
         
         return map_tensor, conf_tensor
 
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
@@ -315,7 +315,20 @@ def prepare_custom_map(map, conf):
     # 将 map, conf 和空白层拼接在一起，最终得到 [3, H, W] 的张量
     combined = torch.cat((map, conf, blank), dim=0)
     
-    return combined
+    return combined'''
+
+def prepare_custom_map(map, conf):
+    if len(map.shape) == 2:
+        map = map.unsqueeze(0)  
+    if len(conf.shape) == 2:
+        conf = conf.unsqueeze(0)  
+    target_size = (224,224)
+    transform = transforms.CenterCrop(target_size)
+    map = transform(map)
+    map = map.repeat(3, 1, 1)
+    
+    
+    return map
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
