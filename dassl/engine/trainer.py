@@ -43,7 +43,10 @@ def prepare_custom_map(map, conf):
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
     if len(conf.shape) == 2:
         conf = conf.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
-    
+    target_size = (224,224)
+    transform = transforms.CenterCrop(target_size)
+    map = transform(map)
+    conf = transform(conf)    
     # 创建一个与 map 相同大小的空白层
     blank = torch.zeros_like(map)  # 生成一个全零张量 [1, H, W]
 
