@@ -298,6 +298,22 @@ def load_noiseprint(npz_path):
         conf_tensor = torch.tensor(conf_data)
         
         return map_tensor, conf_tensor
+
+def prepare_and_crop_map(map, target_size=(224, 224)):
+    # 如果 map 是 [height, width]，加上通道维度
+    if len(map.shape) == 2:  # [height, width]
+        map = map.unsqueeze(0)  # 变成 [1, height, width]
+    
+    # 如果 map 是单通道 [1, height, width]，扩展到 3 通道
+    if map.shape[0] == 1:
+        map = map.repeat(3, 1, 1)  # 复制通道，变为 [3, height, width]
+
+    # 使用中心裁剪将 map 裁剪到 (224, 224)
+    transform = transforms.CenterCrop(target_size)
+    map = transform(map)
+    
+    return map
+
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
 class UnifiedTrainer(TrainerX):
@@ -371,8 +387,9 @@ class UnifiedTrainer(TrainerX):
             #print(map_tensor.shape, conf_tensor.shape)
             maps.append(map_tensor)
             print(len(maps),maps[0].shape)
-        
+        maps_cropped = [prepare_and_crop_map(map) for map in maps]
+        maps_batch = torch.stack(maps_cropped)
         label = batch["label"]
         input = input.to(self.device)
         label = label.to(self.device)
-        return input, label
+        return maps_batch, label
