@@ -180,7 +180,7 @@ def prepare_custom_map(map, conf):
 
 
 def modify_first_conv_layer(model, new_in_channels=5):
-    old_conv = model.image_encoder.conv1
+    old_conv = model.visual.conv1
     
     # 创建一个新的卷积层，修改输入通道数为5
     new_conv = nn.Conv2d(
@@ -203,7 +203,7 @@ def modify_first_conv_layer(model, new_in_channels=5):
             new_conv.bias = old_conv.bias
     
     # 替换模型中的第一层卷积层
-    model.image_encoder.conv1 = new_conv
+    model.visual.conv1 = new_conv
 
     return model
 
