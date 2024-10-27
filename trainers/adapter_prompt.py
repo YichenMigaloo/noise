@@ -299,7 +299,7 @@ def load_noiseprint(npz_path):
         
         return map_tensor, conf_tensor
 
-'''def prepare_custom_map(map, conf):
+def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
@@ -312,9 +312,9 @@ def load_noiseprint(npz_path):
 
     combined = torch.cat((map, conf), dim=0)
     
-    return combined'''
+    return combined
 
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  
     if len(conf.shape) == 2:
@@ -325,7 +325,7 @@ def prepare_custom_map(map, conf):
     map = map.repeat(3, 1, 1)
     
     
-    return map
+    return map'''
 
 
 
