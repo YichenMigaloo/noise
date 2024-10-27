@@ -246,7 +246,7 @@ def eval_adapter_network(args, dataset_path, dataset_names, image_extensions, de
     print("Evaluating Adapter Network Method!")
 
     if '100k' in args.model:
-        model_names = ['/content/noise/train_outputs/clip_adapter_100k_2epochs/']
+        model_names = ['/content/noise/train_outputs/improve_2epochs/']
     elif '80k' in args.model:
         model_names = ['/content/drive/MyDrive/weights/selected_clip_adapter_models/clipadapter_40k_real_fake_04/']
     elif '60k' in args.model:
