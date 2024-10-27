@@ -77,8 +77,8 @@ def prepare_custom_map(map, conf):
     transform = transforms.CenterCrop(target_size)
     map = transform(map)
     conf = transform(conf)
-    blank = torch.zeros_like(map)
-    combined = torch.cat((map, map, map, conf,blank), dim=0)
+    #blank = torch.zeros_like(map)
+    combined = torch.cat((map, conf), dim=0)
     
     return combined
 
@@ -756,7 +756,7 @@ class TrainerX(SimpleTrainer):
 
 
 
-        '''#
+        #
         input = batch["img"]
     
         impaths = batch["impath"]
@@ -776,5 +776,5 @@ class TrainerX(SimpleTrainer):
         label = batch["label"].to(self.device)
 
         return combined_input, label, domain
-        #'''
+        #
         return maps_batch, label, domain

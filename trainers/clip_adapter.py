@@ -172,11 +172,40 @@ def prepare_custom_map(map, conf):
     transform = transforms.CenterCrop(target_size)
     map = transform(map)
     conf = transform(conf)
-    blank = torch.zeros_like(map)
-    combined = torch.cat((map, conf,blank), dim=0)
+    #blank = torch.zeros_like(map)
+    combined = torch.cat((map, conf), dim=0)
     
     return combined
 
+
+
+def modify_first_conv_layer(model, new_in_channels=5):
+    old_conv = model.image_encoder.conv1
+    
+    # 创建一个新的卷积层，修改输入通道数为5
+    new_conv = nn.Conv2d(
+        in_channels=new_in_channels,  # 修改输入通道数为5
+        out_channels=old_conv.out_channels,  # 保持输出通道数不变
+        kernel_size=old_conv.kernel_size,
+        stride=old_conv.stride,
+        padding=old_conv.padding,
+        bias=old_conv.bias is not None  # 保留是否有bias
+    )
+    
+    # 初始化新的卷积层
+    with torch.no_grad():
+        # 将原始3通道的卷积权重复制到新卷积层的前3个通道
+        new_conv.weight[:, :3, :, :] = old_conv.weight  # 保持前3个通道的权重
+        # 对新增的两个通道 (map 和 conf) 进行随机初始化
+        nn.init.kaiming_normal_(new_conv.weight[:, 3:, :, :], mode='fan_out', nonlinearity='relu')
+
+        if old_conv.bias is not None:
+            new_conv.bias = old_conv.bias
+    
+    # 替换模型中的第一层卷积层
+    model.image_encoder.conv1 = new_conv
+
+    return model
 
 
 @TRAINER_REGISTRY.register()
@@ -189,6 +218,7 @@ class CLIP_Adapter(TrainerX):
 
         print(f'Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})')
         clip_model = load_clip_to_cpu(cfg)
+        clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
         clip_model.float()
 
         print('Building custom CLIP')
@@ -240,22 +270,31 @@ class CLIP_Adapter(TrainerX):
         input = input.to(self.device)
         label = label.to(self.device)
         return input, label'''
-        input = batch["img"]
-        impaths = batch["impath"]
+        input = batch['img']  # 这是原始的 RGB 图像 (3 通道)
+    
+        # 获取每个图像对应的 noiseprint 数据
+        impaths = batch['impath']
         maps = []
         for path in impaths:
-            map_tensor, conf_tensor = load_noiseprint(path)
-            temp = prepare_custom_map(map_tensor, conf_tensor)
-            maps.append(temp)
-            #print(len(maps),maps[0].shape)
-       
+            map_tensor, conf_tensor = load_noiseprint(path)  # 分别加载 map 和 conf tensor
+            # 将 map_tensor 和 conf_tensor 处理为所需尺寸
+            temp_map = prepare_custom_map(map_tensor, conf_tensor)  # 返回 map_tensor 和 conf_tensor 的组合
+            
+            maps.append(temp_map)
+
+        # 将所有 noiseprint 数据组合成 batch
         maps_batch = torch.stack(maps)
-        #print("maps_batch",maps_batch.shape)
-        label = batch["label"]
-        #input = input.to(self.device)
+        
+        # 将 RGB 图像和 noiseprint 的 map 和 conf 合并为 5 通道输入
+        input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
-        label = label.to(self.device)
-        return maps_batch, label
+        
+        # 将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
+        combined_input = torch.cat((input, maps_batch), dim=1)  # 在通道维度拼接，最终形成 5 通道张量
+
+        label = batch['label'].to(self.device)
+
+        return combined_input, label
     
     def load_model(self, directory, epoch=None):
         if not directory:

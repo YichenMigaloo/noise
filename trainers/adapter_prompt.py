@@ -130,7 +130,7 @@ class TextEncoder(nn.Module):
     def forward(self, prompts, tokenized_prompts):
         # Adjust positional embeddings to match the sequence length of prompts
         seq_length = prompts.shape[1]  # Get the sequence length of prompts
-        
+
         # Extend or slice the positional embeddings to match the prompt sequence length
         if seq_length > self.positional_embedding.shape[0]:
             positional_embedding = self._extend_positional_embeddings(seq_length).type(self.dtype)
@@ -142,19 +142,13 @@ class TextEncoder(nn.Module):
             raise ValueError(f"Positional embedding shape {positional_embedding.shape} does not match prompt shape {prompts.shape}")
 
         # Add positional embedding to prompts
-        print(f"Positional embedding dtype: {positional_embedding.dtype}")
-
-        # Add positional embedding to prompts
         x = prompts + positional_embedding
-
-        # 打印 prompts 和 x 的类型
-        print(f"Prompts dtype: {prompts.dtype}")
-        print(f"x dtype after adding positional embedding: {x.dtype}")
+        
         # Cast tensors to ensure consistent data types (to avoid Float/Half precision mismatch)
         x = x.to(self.dtype)
 
         x = x.permute(1, 0, 2)  # NLD -> LND for transformer
-        print(f"text_projection dtype: {self.text_projection.dtype}")
+
         # Update attention mask to match the sequence length
         self._update_attention_mask(seq_length)
 
@@ -164,11 +158,10 @@ class TextEncoder(nn.Module):
 
         x = x.permute(1, 0, 2)  # LND -> NLD after transformer
         x = self.ln_final(x).type(self.dtype)
-        x = x.to(self.text_projection.dtype)
 
         # Take features from the end-of-token (eot) embedding
         x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
-        x = x.to(self.text_projection.dtype)
+
         return x
 
     def _extend_positional_embeddings(self, target_length):
@@ -317,7 +310,7 @@ def prepare_custom_map(map, conf):
     map = transform(map)
     conf = transform(conf)
     blank = torch.zeros_like(map)
-    combined = torch.cat((map, map, map, conf,blank), dim=0)
+    combined = torch.cat((map, conf,blank), dim=0)
     
     return combined
 
@@ -378,7 +371,7 @@ class UnifiedTrainer(TrainerX):
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
         clip_model = load_clip_to_cpu(cfg)
         #clip_model = load_vit_without_last_layer(cfg)
-        clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
+        #clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             clip_model.float()
 
