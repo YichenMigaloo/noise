@@ -679,13 +679,15 @@ class TrainerXU(SimpleTrainer):
         '''input_x = input_x.to(self.device)
         label_x = label_x.to(self.device)
         input_u = input_u.to(self.device)'''
-
-        maps_x = maps_x.to(self.device)
+        combined_input_x = torch.cat((input_x, maps_x), dim=1)
+        combined_input_u = torch.cat((input_u, maps_u), dim = 1)
         label_x = label_x.to(self.device)
         maps_u = maps_u.to(self.device)
+        combined_input_x = combined_input_x.to(self.device)
+        combined_input_u = combined_input_u.to(self.device)
         #print("maps_x",maps_x.shape,"maps_u", maps_u.shape)
         #return input_x, label_x, input_u
-        return maps_x, label_x, maps_u
+        return combined_input_x, label_x, combined_input_u
 
 
 class TrainerX(SimpleTrainer):
@@ -778,7 +780,7 @@ class TrainerX(SimpleTrainer):
         
         # 将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
         combined_input = torch.cat((input, maps_batch), dim=1)  # 在通道维度拼接，最终形成 5 通道张量
-
+        print(combined_input.shape)
         label = batch['label'].to(self.device)
 
         return combined_input, label, domain 
