@@ -543,7 +543,7 @@ class SimpleTrainer(TrainerBase):
 
 
     def model_inference(self, input):
-        #return self.model(input)
+        return self.model(input)
         classnames = self.dm.dataset.classnames  # Fetch classnames from dataset manager
         return self.model(input, classnames)  # Pass classnames to the model
 
