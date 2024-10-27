@@ -310,7 +310,7 @@ def prepare_custom_map(map, conf):
     map = transform(map)
     conf = transform(conf)
     blank = torch.zeros_like(map)
-    combined = torch.cat((map, conf,blank), dim=0)
+    combined = torch.cat((map, map, map, conf,blank), dim=0)
     
     return combined
 
@@ -371,7 +371,7 @@ class UnifiedTrainer(TrainerX):
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
         clip_model = load_clip_to_cpu(cfg)
         #clip_model = load_vit_without_last_layer(cfg)
-        #clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
+        clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             clip_model.float()
 

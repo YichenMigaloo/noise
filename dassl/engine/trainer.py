@@ -78,7 +78,7 @@ def prepare_custom_map(map, conf):
     map = transform(map)
     conf = transform(conf)
     blank = torch.zeros_like(map)
-    combined = torch.cat((map, conf,blank), dim=0)
+    combined = torch.cat((map, map, map, conf,blank), dim=0)
     
     return combined
 
@@ -543,7 +543,7 @@ class SimpleTrainer(TrainerBase):
 
 
     def model_inference(self, input):
-        return self.model(input)
+        #return self.model(input)
         classnames = self.dm.dataset.classnames  # Fetch classnames from dataset manager
         return self.model(input, classnames)  # Pass classnames to the model
 
