@@ -299,7 +299,7 @@ def load_noiseprint(npz_path):
         
         return map_tensor, conf_tensor
 
-'''def prepare_custom_map(map, conf):
+def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
@@ -309,15 +309,12 @@ def load_noiseprint(npz_path):
     transform = transforms.CenterCrop(target_size)
     map = transform(map)
     conf = transform(conf)
-    # 创建一个与 map 相同大小的空白层
-    blank = torch.zeros_like(map)  # 生成一个全零张量 [1, H, W]
 
-    # 将 map, conf 和空白层拼接在一起，最终得到 [3, H, W] 的张量
-    combined = torch.cat((map, conf, blank), dim=0)
+    combined = torch.cat((map, conf), dim=0)
     
-    return combined'''
+    return combined
 
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  
     if len(conf.shape) == 2:
@@ -328,7 +325,41 @@ def prepare_custom_map(map, conf):
     map = map.repeat(3, 1, 1)
     
     
-    return map
+    return map'''
+
+
+
+def modify_first_conv_layer(model, new_in_channels=5):
+    # 获取原始的第一层卷积层
+    old_conv = model.visual.conv1
+    
+    # 创建一个新的卷积层，修改输入通道数为5
+    new_conv = nn.Conv2d(
+        in_channels=new_in_channels,  # 修改输入通道数为5
+        out_channels=old_conv.out_channels,  # 保持输出通道数不变
+        kernel_size=old_conv.kernel_size,
+        stride=old_conv.stride,
+        padding=old_conv.padding,
+        bias=old_conv.bias is not None  # 保留是否有bias
+    )
+    
+    # 初始化新的卷积层
+    with torch.no_grad():
+        # 将原始3通道的卷积权重复制到新卷积层的前3个通道
+        new_conv.weight[:, :3, :, :] = old_conv.weight  # 前3个通道保持与原始权重一致
+        # 随机初始化剩下的两个通道的权重
+        if new_in_channels > 3:
+            nn.init.kaiming_normal_(new_conv.weight[:, 3:, :, :], mode='fan_out', nonlinearity='relu')
+
+        # 如果有bias，也将其复制
+        if old_conv.bias is not None:
+            new_conv.bias = old_conv.bias
+    
+    # 用新的卷积层替换原始的卷积层
+    model.visual.conv1 = new_conv
+
+    return model
+
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
 @TRAINER_REGISTRY.register()
@@ -340,7 +371,7 @@ class UnifiedTrainer(TrainerX):
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
         clip_model = load_clip_to_cpu(cfg)
         #clip_model = load_vit_without_last_layer(cfg)
-
+        clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             clip_model.float()
 
@@ -395,7 +426,7 @@ class UnifiedTrainer(TrainerX):
     
 
     def parse_batch_train(self, batch):
-        input = batch["img"]
+        '''input = batch["img"]
         impaths = batch["impath"]
         maps = []
         for path in impaths:
@@ -410,4 +441,24 @@ class UnifiedTrainer(TrainerX):
         #input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
         label = label.to(self.device)
-        return maps_batch, label
+        return maps_batch, label'''
+    
+
+        input = batch["img"]
+    
+        impaths = batch["impath"]
+        maps = []
+        for path in impaths:
+            map_tensor, conf_tensor = load_noiseprint(path)  # 分别加载 map 和 conf tensor
+            combined_map_conf = prepare_custom_map(map_tensor, conf_tensor)  # 只返回 map_tensor
+
+            maps.append(combined_map_conf)
+
+        maps_batch = torch.stack(maps)  
+        input = input.to(self.device)
+        maps_batch = maps_batch.to(self.device)
+        combined_input = torch.cat((input, maps_batch), dim=1).to(self.device)
+        
+        label = batch["label"].to(self.device)
+
+        return combined_input, label

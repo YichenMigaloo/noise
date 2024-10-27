@@ -55,7 +55,7 @@ def load_noiseprint(npz_path):
     
     return combined'''
 
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  
     if len(conf.shape) == 2:
@@ -66,7 +66,21 @@ def prepare_custom_map(map, conf):
     map = map.repeat(3, 1, 1)
     
     
-    return map
+    return map'''
+def prepare_custom_map(map, conf):
+    # 确保 map 和 conf 是 2D 的 [H, W]
+    if len(map.shape) == 2:
+        map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
+    if len(conf.shape) == 2:
+        conf = conf.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
+    target_size = (224,224)
+    transform = transforms.CenterCrop(target_size)
+    map = transform(map)
+    conf = transform(conf)
+
+    combined = torch.cat((map, conf), dim=0)
+    
+    return combined
 
 class SimpleNet(nn.Module):
     """A simple neural network composed of a CNN backbone
@@ -740,4 +754,26 @@ class TrainerX(SimpleTrainer):
         label = label.to(self.device)
         domain = domain.to(self.device)
 
+
+
+        #
+        input = batch["img"]
+    
+        impaths = batch["impath"]
+        maps = []
+        for path in impaths:
+            map_tensor, conf_tensor = load_noiseprint(path)  # 分别加载 map 和 conf tensor
+            combined_map_conf = prepare_custom_map(map_tensor, conf_tensor)  # 只返回 map_tensor
+
+            maps.append(combined_map_conf)
+
+        maps_batch = torch.stack(maps)  
+        input = input.to(self.device)
+        maps_batch = maps_batch.to(self.device)
+        combined_input = torch.cat((input, maps_batch), dim=1).to(self.device)
+        
+        label = batch["label"].to(self.device)
+
+        return combined_input, label, domain
+        #
         return maps_batch, label, domain
