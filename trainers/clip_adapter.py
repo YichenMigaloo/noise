@@ -9,9 +9,10 @@ from dassl.engine import TRAINER_REGISTRY, TrainerX
 from dassl.metrics import compute_accuracy
 from dassl.utils import load_pretrained_weights, load_checkpoint
 from dassl.optim import build_optimizer, build_lr_scheduler
-
+import os
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
+import torchvision.transforms as transforms
 
 _tokenizer = _Tokenizer()
 
@@ -140,6 +141,42 @@ class CustomCLIP(nn.Module):
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
+    
+
+
+def encode_output_path(image_path):
+        directory, filename = os.path.split(image_path)
+        new_directory = directory.replace('/images', '/noiseprint')
+        output_filename = filename + ".npz"
+        output_path = os.path.join(new_directory, output_filename)
+        return output_path
+def load_noiseprint(npz_path):
+        output_path = encode_output_path(npz_path)
+        data = np.load(output_path)
+        map_data = data['map']
+        conf_data = data['conf']
+        
+        # Convert numpy arrays to torch tensors
+        map_tensor = torch.tensor(map_data)
+        conf_tensor = torch.tensor(conf_data)
+        
+        return map_tensor, conf_tensor
+
+def prepare_custom_map(map, conf):
+    # 确保 map 和 conf 是 2D 的 [H, W]
+    if len(map.shape) == 2:
+        map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
+    if len(conf.shape) == 2:
+        conf = conf.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
+    target_size = (224,224)
+    transform = transforms.CenterCrop(target_size)
+    map = transform(map)
+    conf = transform(conf)
+    blank = torch.zeros_like(map)
+    combined = torch.cat((map, conf,blank), dim=0)
+    
+    return combined
+
 
 
 @TRAINER_REGISTRY.register()
@@ -198,11 +235,27 @@ class CLIP_Adapter(TrainerX):
         return loss_summary
 
     def parse_batch_train(self, batch):
-        input = batch['img']
+        '''input = batch['img']
         label = batch['label']
         input = input.to(self.device)
         label = label.to(self.device)
-        return input, label
+        return input, label'''
+        input = batch["img"]
+        impaths = batch["impath"]
+        maps = []
+        for path in impaths:
+            map_tensor, conf_tensor = load_noiseprint(path)
+            temp = prepare_custom_map(map_tensor, conf_tensor)
+            maps.append(temp)
+            #print(len(maps),maps[0].shape)
+       
+        maps_batch = torch.stack(maps)
+        #print("maps_batch",maps_batch.shape)
+        label = batch["label"]
+        #input = input.to(self.device)
+        maps_batch = maps_batch.to(self.device)
+        label = label.to(self.device)
+        return maps_batch, label
     
     def load_model(self, directory, epoch=None):
         if not directory:
