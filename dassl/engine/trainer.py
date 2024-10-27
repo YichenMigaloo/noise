@@ -745,7 +745,7 @@ class TrainerX(SimpleTrainer):
             temp = prepare_custom_map(map_tensor, conf_tensor)
             maps.append(temp)
             #print(len(maps),maps[0].shape)
-        maps_batch = torch.stack(temp)
+        maps_batch = torch.stack(maps)
         #print("maps_batch",maps_batch.shape)
 
         label = batch["label"]

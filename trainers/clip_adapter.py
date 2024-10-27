@@ -270,16 +270,15 @@ class CLIP_Adapter(TrainerX):
         input = input.to(self.device)
         label = label.to(self.device)
         return input, label'''
-        input = batch['img']  # 这是原始的 RGB 图像 (3 通道)
-    
-        # 获取每个图像对应的 noiseprint 数据
-        impaths = batch['impath']
+        input = batch["img"]  # 3通道RGB图像
+        impaths = batch["impath"]
         maps = []
+        
         for path in impaths:
-            map_tensor, conf_tensor = load_noiseprint(path)  # 分别加载 map 和 conf tensor
-            # 将 map_tensor 和 conf_tensor 处理为所需尺寸
-            temp_map = prepare_custom_map(map_tensor, conf_tensor)  # 返回 map_tensor 和 conf_tensor 的组合
-            
+            # 加载 map_tensor 和 conf_tensor
+            map_tensor, conf_tensor = load_noiseprint(path)
+            # 处理 map_tensor 和 conf_tensor，并将其拼接
+            temp_map = prepare_custom_map(map_tensor, conf_tensor)
             maps.append(temp_map)
 
         # 将所有 noiseprint 数据组合成 batch
@@ -289,7 +288,7 @@ class CLIP_Adapter(TrainerX):
         input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
         
-        # 将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
+        # 在通道维度上将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
         combined_input = torch.cat((input, maps_batch), dim=1)  # 在通道维度拼接，最终形成 5 通道张量
 
         label = batch['label'].to(self.device)
