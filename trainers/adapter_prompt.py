@@ -130,7 +130,7 @@ class TextEncoder(nn.Module):
     def forward(self, prompts, tokenized_prompts):
         # Adjust positional embeddings to match the sequence length of prompts
         seq_length = prompts.shape[1]  # Get the sequence length of prompts
-
+        
         # Extend or slice the positional embeddings to match the prompt sequence length
         if seq_length > self.positional_embedding.shape[0]:
             positional_embedding = self._extend_positional_embeddings(seq_length).type(self.dtype)
@@ -142,8 +142,14 @@ class TextEncoder(nn.Module):
             raise ValueError(f"Positional embedding shape {positional_embedding.shape} does not match prompt shape {prompts.shape}")
 
         # Add positional embedding to prompts
+        print(f"Positional embedding dtype: {positional_embedding.dtype}")
+
+        # Add positional embedding to prompts
         x = prompts + positional_embedding
-        
+
+        # 打印 prompts 和 x 的类型
+        print(f"Prompts dtype: {prompts.dtype}")
+        print(f"x dtype after adding positional embedding: {x.dtype}")
         # Cast tensors to ensure consistent data types (to avoid Float/Half precision mismatch)
         x = x.to(self.dtype)
 
@@ -161,7 +167,7 @@ class TextEncoder(nn.Module):
 
         # Take features from the end-of-token (eot) embedding
         x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
-
+        x = x.to(self.text_projection.dtype)
         return x
 
     def _extend_positional_embeddings(self, target_length):
