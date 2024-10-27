@@ -154,7 +154,7 @@ class TextEncoder(nn.Module):
         x = x.to(self.dtype)
 
         x = x.permute(1, 0, 2)  # NLD -> LND for transformer
-
+        print(f"text_projection dtype: {self.text_projection.dtype}")
         # Update attention mask to match the sequence length
         self._update_attention_mask(seq_length)
 
