@@ -458,7 +458,7 @@ class UnifiedTrainer(TrainerX):
         input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
         combined_input = torch.cat((input, maps_batch), dim=1).to(self.device)
-        
+        combined_input = combined_input.to(self.dtype)
         label = batch["label"].to(self.device)
 
         return combined_input, label
