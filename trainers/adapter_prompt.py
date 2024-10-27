@@ -299,7 +299,7 @@ def load_noiseprint(npz_path):
         
         return map_tensor, conf_tensor
 
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
@@ -312,9 +312,9 @@ def prepare_custom_map(map, conf):
 
     combined = torch.cat((map, conf), dim=0)
     
-    return combined
+    return combined'''
 
-'''def prepare_custom_map(map, conf):
+def prepare_custom_map(map, conf):
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  
     if len(conf.shape) == 2:
@@ -325,7 +325,7 @@ def prepare_custom_map(map, conf):
     map = map.repeat(3, 1, 1)
     
     
-    return map'''
+    return map
 
 
 
@@ -369,9 +369,9 @@ class UnifiedTrainer(TrainerX):
         classnames = self.dm.dataset.classnames
         print(f"Classnames:{classnames}")
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
-        clip_model = load_clip_to_cpu(cfg)
-        #clip_model = load_vit_without_last_layer(cfg)
-        clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
+        #clip_model = load_clip_to_cpu(cfg)
+        clip_model = load_vit_without_last_layer(cfg)
+        #clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             clip_model.float()
 
@@ -426,7 +426,7 @@ class UnifiedTrainer(TrainerX):
     
 
     def parse_batch_train(self, batch):
-        '''input = batch["img"]
+        input = batch["img"]
         impaths = batch["impath"]
         maps = []
         for path in impaths:
@@ -441,10 +441,10 @@ class UnifiedTrainer(TrainerX):
         #input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
         label = label.to(self.device)
-        return maps_batch, label'''
+        return maps_batch, label
     
 
-        input = batch["img"]
+        '''input = batch["img"]
     
         impaths = batch["impath"]
         maps = []
@@ -461,4 +461,4 @@ class UnifiedTrainer(TrainerX):
         combined_input = combined_input.to(self.dtype)
         label = batch["label"].to(self.device)
 
-        return combined_input, label
+        return combined_input, label'''
