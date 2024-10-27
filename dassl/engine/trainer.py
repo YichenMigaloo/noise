@@ -77,8 +77,8 @@ def prepare_custom_map(map, conf):
     transform = transforms.CenterCrop(target_size)
     map = transform(map)
     conf = transform(conf)
-
-    combined = torch.cat((map, conf), dim=0)
+    blank = torch.zeros_like(map)
+    combined = torch.cat((map, conf,blank), dim=0)
     
     return combined
 
