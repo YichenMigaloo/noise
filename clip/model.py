@@ -205,6 +205,7 @@ class VisionTransformer(nn.Module):
         self.input_resolution = input_resolution
         self.output_dim = output_dim
         self.conv1 = nn.Conv2d(in_channels=5, out_channels=width, kernel_size=patch_size, stride=patch_size, bias=False)
+        #self.conv1 = nn.Conv2d(in_channels=3, out_channels=width, kernel_size=patch_size, stride=patch_size, bias=False)
 
         scale = width ** -0.5
         self.class_embedding = nn.Parameter(scale * torch.randn(width))
