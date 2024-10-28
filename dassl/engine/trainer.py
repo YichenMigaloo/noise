@@ -780,7 +780,7 @@ class TrainerX(SimpleTrainer):
         
         # 将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
         combined_input = torch.cat((input, maps_batch), dim=1)  # 在通道维度拼接，最终形成 5 通道张量
-        print(combined_input.shape)
+        print("combined_input shape:",combined_input.shape)
         label = batch['label'].to(self.device)
 
         return combined_input, label, domain 
