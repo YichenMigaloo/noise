@@ -85,6 +85,7 @@ def load_noiseprint(npz_path):
 
 def prepare_noiseprint(noiseprint):
     if len(noiseprint.shape) ==2:
+        noiseprint = torch.from_numpy(noiseprint)
         noiseprint = noiseprint.unsqueeze(0)
     target_size = (224,224)
     transform = transforms.CenterCrop(target_size)
