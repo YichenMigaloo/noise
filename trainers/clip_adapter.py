@@ -13,7 +13,7 @@ import os
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 import torchvision.transforms as transforms
-
+from noiseprint.Noiseprint import *
 _tokenizer = _Tokenizer()
 
 
@@ -162,7 +162,7 @@ def load_noiseprint(npz_path):
         
         return map_tensor, conf_tensor
 
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
@@ -175,11 +175,19 @@ def prepare_custom_map(map, conf):
     #blank = torch.zeros_like(map)
     combined = torch.cat((map, conf), dim=0)
     
-    return combined
+    return combined'''
+
+def prepare_noiseprint(noiseprint):
+    if len(noiseprint.shape) ==2:
+        noiseprint = noiseprint.unsqueeze(0)
+    target_size = (224,224)
+    transform = transforms.CenterCrop(target_size)
+    noiseprint = transform(noiseprint)
+    return noiseprint
 
 
 
-def modify_first_conv_layer(model, new_in_channels=5):
+def modify_first_conv_layer(model, new_in_channels):
     old_conv = model.visual.conv1
     
     # 创建一个新的卷积层，修改输入通道数为5
@@ -218,7 +226,7 @@ class CLIP_Adapter(TrainerX):
 
         print(f'Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})')
         clip_model = load_clip_to_cpu(cfg)
-        clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
+        clip_model = modify_first_conv_layer(clip_model, new_in_channels=4)
         clip_model.float()
 
         print('Building custom CLIP')
@@ -272,17 +280,16 @@ class CLIP_Adapter(TrainerX):
         return input, label'''
         input = batch["img"]  # 3通道RGB图像
         impaths = batch["impath"]
-        maps = []
+        noiseprints = []
         
-        for path in impaths:
-            # 加载 map_tensor 和 conf_tensor
-            map_tensor, conf_tensor = load_noiseprint(path)
-            # 处理 map_tensor 和 conf_tensor，并将其拼接
-            temp_map = prepare_custom_map(map_tensor, conf_tensor)
-            maps.append(temp_map)
+        for img_path in impaths:
+            _,noise_print=getNoiseprint(img_path)
+            noise_print = prepare_noiseprint(noise_print)
+            noiseprints.append(noise_print)
+
 
         # 将所有 noiseprint 数据组合成 batch
-        maps_batch = torch.stack(maps)
+        maps_batch = torch.stack(noiseprints)
         
         # 将 RGB 图像和 noiseprint 的 map 和 conf 合并为 5 通道输入
         input = input.to(self.device)

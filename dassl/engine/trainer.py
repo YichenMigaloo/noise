@@ -9,6 +9,7 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import os
 import torchvision.transforms as transforms
+from noiseprint.Noiseprint import *
 
 from dassl.data import DataManager
 from dassl.optim import build_optimizer, build_lr_scheduler
@@ -19,7 +20,7 @@ from dassl.utils import (
 )
 from dassl.modeling import build_head, build_backbone
 from dassl.evaluation import build_evaluator
-def encode_output_path(image_path):
+'''def encode_output_path(image_path):
         directory, filename = os.path.split(image_path)
         new_directory = directory.replace('/images', '/noiseprint')
         output_filename = filename + ".npz"
@@ -35,7 +36,7 @@ def load_noiseprint(npz_path):
         map_tensor = torch.tensor(map_data)
         conf_tensor = torch.tensor(conf_data)
         
-        return map_tensor, conf_tensor
+        return map_tensor, conf_tensor'''
 
 '''def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
@@ -67,7 +68,7 @@ def load_noiseprint(npz_path):
     
     
     return map'''
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
@@ -80,7 +81,15 @@ def prepare_custom_map(map, conf):
     #blank = torch.zeros_like(map)
     combined = torch.cat((map, conf), dim=0)
     
-    return combined
+    return combined'''
+
+def prepare_noiseprint(noiseprint):
+    if len(noiseprint.shape) ==2:
+        noiseprint = noiseprint.unsqueeze(0)
+    target_size = (224,224)
+    transform = transforms.CenterCrop(target_size)
+    noiseprint = transform(noiseprint)
+    return noiseprint
 
 class SimpleNet(nn.Module):
     """A simple neural network composed of a CNN backbone
@@ -561,10 +570,7 @@ class SimpleTrainer(TrainerBase):
         impaths = batch['impath']
         maps = []
         for path in impaths:
-            map_tensor, conf_tensor = load_noiseprint(path)  # 分别加载 map 和 conf tensor
-            # 将 map_tensor 和 conf_tensor 处理为所需尺寸
-            temp_map = prepare_custom_map(map_tensor, conf_tensor)  # 返回 map_tensor 和 conf_tensor 的组合
-            
+            _, temp_map = getNoiseprint(path)
             maps.append(temp_map)
 
         # 将所有 noiseprint 数据组合成 batch
@@ -692,13 +698,13 @@ class TrainerXU(SimpleTrainer):
         maps_x = []
         maps_u = []
         for _ in impath_x:
-            map_tensor, conf_tensor = load_noiseprint(_)
-            temp = prepare_custom_map(map_tensor, conf_tensor)
+            images, noiseprint = getNoiseprint(_)
+            temp = prepare_noiseprint(noiseprint)
             maps_x.append(temp)
         
         for _ in impath_u:
-            map_tensor, conf_tensor = load_noiseprint(_)
-            temp = prepare_custom_map(map_tensor, conf_tensor)
+            images, noiseprint = getNoiseprint(_)
+            temp = prepare_noiseprint(noiseprint)
             maps_u.append(temp)
 
         '''input_x = input_x.to(self.device)
@@ -788,16 +794,15 @@ class TrainerX(SimpleTrainer):
     
         # 获取每个图像对应的 noiseprint 数据
         impaths = batch['impath']
-        maps = []
+        noiseprints = []
         for path in impaths:
-            map_tensor, conf_tensor = load_noiseprint(path)  # 分别加载 map 和 conf tensor
-            # 将 map_tensor 和 conf_tensor 处理为所需尺寸
-            temp_map = prepare_custom_map(map_tensor, conf_tensor)  # 返回 map_tensor 和 conf_tensor 的组合
-            
-            maps.append(temp_map)
+            _, noiseprint = getNoiseprint(path)
+            noiseprint = prepare_noiseprint(noiseprint)
+            noiseprints.append(noiseprint)
+
 
         # 将所有 noiseprint 数据组合成 batch
-        maps_batch = torch.stack(maps)
+        maps_batch = torch.stack(noiseprints)
         
         # 将 RGB 图像和 noiseprint 的 map 和 conf 合并为 5 通道输入
         input = input.to(self.device)
