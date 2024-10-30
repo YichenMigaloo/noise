@@ -123,7 +123,7 @@ def getNoiseprint(image_path):
     with torch.no_grad():
     
         if img.shape[0]*img.shape[1]>largeLimit:
-            print(' %dx%d large %3d' % (img.shape[0], img.shape[1], QF))
+            #print(' %dx%d large %3d' % (img.shape[0], img.shape[1], QF))
             # for large image the network is executed windows with partial overlapping 
             res = np.zeros((img.shape[0],img.shape[1]), np.float32)
             for index0 in range(0,img.shape[0],slide):
@@ -154,7 +154,7 @@ def getNoiseprint(image_path):
 
 
         else:
-            print(' %dx%d small %3d' % (img.shape[0], img.shape[1], QF))
+            #print(' %dx%d small %3d' % (img.shape[0], img.shape[1], QF))
             tensor_image = transform(img)
             tensor_image = tensor_image.reshape(1,1,tensor_image.shape[1],tensor_image.shape[2])
             res = net(tensor_image)
