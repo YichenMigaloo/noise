@@ -116,7 +116,7 @@ def getNoiseprint(image_path):
         QF = 101
     
     net = FullConvNet(0.9, torch.tensor(False), num_levels=17)
-    file_path=f"pretrained_weights/model_qf{int(QF)}.pth"
+    file_path=f"content/noise/noiseprint/pretrained_weights/model_qf{int(QF)}.pth"
     net.load_state_dict(torch.load(file_path))
     net.eval()
     
