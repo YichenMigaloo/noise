@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from utilityRead import *
+from noiseprint.utilityRead import *
 import torchvision.transforms as transforms
 
 #torch.set_default_dtype(torch.float32)
