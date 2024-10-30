@@ -572,6 +572,7 @@ class SimpleTrainer(TrainerBase):
         maps = []
         for path in impaths:
             _, temp_map = getNoiseprint(path)
+            temp_map = prepare_noiseprint(temp_map)
             maps.append(temp_map)
 
         # 将所有 noiseprint 数据组合成 batch
