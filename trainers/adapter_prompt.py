@@ -85,37 +85,8 @@ class Adapter(nn.Module):
         x = self.fc(x)
         return x
 
-# Load the Images and Extract Noise Print
-def load_image(image_path):
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-    image = Image.open(image_path).convert('RGB')
-    return transform(image).unsqueeze(0)  # Add batch dimension
 
-def extract_noise_print(image):
-    # Dummy noise print extraction (replace with actual noise extraction method)
-    noise = torch.randn_like(image) * 0.1  # Adding random noise as a placeholder
-    return noise
 
-# Merge Function into Existing Code
-def extract_and_fuse_embeddings(model, image_path):
-    # Load the RGB image and the noise print
-    rgb_image = load_image(image_path)
-    noise_print = extract_noise_print(rgb_image)
-    
-    # Combine both images into a batch
-    images = torch.cat((rgb_image, noise_print), dim=0)
-    
-    # Pass through the network to get embeddings
-    embeddings = model(images)
-    
-    # Combine the Embeddings
-    combined_embedding = torch.cat((embeddings[0], embeddings[1]), dim=0)  # Concatenate embeddings
-    
-    return combined_embedding
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
