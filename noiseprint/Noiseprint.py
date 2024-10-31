@@ -102,11 +102,17 @@ def getNoiseprint(image_path):
     @author: davide.cozzolino
     """
     '''
+    def center_crop(img, crop_size=(224, 224)):
+        h, w = img.shape[:2]  # 获取图像的高和宽
+        ch, cw = crop_size    # 裁剪的高和宽
+        start_h = (h - ch) // 2
+        start_w = (w - cw) // 2
+        return img[start_h:start_h + ch, start_w:start_w + cw]
+
 
     img,mode = imread2f(image_path, channel=1)
-    temp_size = (224,224)
-    temp_trans = transforms.CenterCrop(temp_size)
-    img = temp_trans(img)
+    
+    img = center_crop(img)
     
     slide = 1024 #3072
     largeLimit = 1050000 #9437184
