@@ -106,7 +106,7 @@ def getNoiseprint(image_path):
     img,mode = imread2f(image_path, channel=1)
     temp_size = (224,224)
     temp_trans = transforms.CenterCrop(temp_size)
-    img = transform(temp_trans)
+    img = temp_trans(img)
     
     slide = 1024 #3072
     largeLimit = 1050000 #9437184
