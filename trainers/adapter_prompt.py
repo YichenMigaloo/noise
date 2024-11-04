@@ -252,7 +252,7 @@ class AdapterPrompt(nn.Module):
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
-def encode_output_path(image_path):
+'''def encode_output_path(image_path):
         directory, filename = os.path.split(image_path)
         new_directory = directory.replace('/images', '/noiseprint')
         output_filename = filename + ".npz"
@@ -268,9 +268,9 @@ def load_noiseprint(npz_path):
         map_tensor = torch.tensor(map_data)
         conf_tensor = torch.tensor(conf_data)
         
-        return map_tensor, conf_tensor
+        return map_tensor, conf_tensor'''
 
-def prepare_custom_map(map, conf):
+'''def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
     if len(map.shape) == 2:
         map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
@@ -283,7 +283,7 @@ def prepare_custom_map(map, conf):
     blank = torch.zeros_like(map)
     combined = torch.cat((map, conf,blank), dim=0)
     
-    return combined
+    return combined'''
 
 '''def prepare_custom_map(map, conf):
     if len(map.shape) == 2:
@@ -300,7 +300,7 @@ def prepare_custom_map(map, conf):
 
 
 
-def modify_first_conv_layer(model, new_in_channels=5):
+'''def modify_first_conv_layer(model, new_in_channels=5):
     # 获取原始的第一层卷积层
     old_conv = model.visual.conv1
     
@@ -329,7 +329,7 @@ def modify_first_conv_layer(model, new_in_channels=5):
     # 用新的卷积层替换原始的卷积层
     model.visual.conv1 = new_conv
 
-    return model
+    return model'''
 
 
 # Trainer class combining both models and integrating training for Adapter and PromptLearner
@@ -397,7 +397,7 @@ class UnifiedTrainer(TrainerX):
     
 
     def parse_batch_train(self, batch):
-        input = batch["img"]
+        '''input = batch["img"]
         impaths = batch["impath"]
         maps = []
         for path in impaths:
@@ -412,24 +412,14 @@ class UnifiedTrainer(TrainerX):
         #input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
         label = label.to(self.device)
-        return maps_batch, label
+        return maps_batch, label'''
     
 
-        '''input = batch["img"]
+        input = batch["img"]
     
         impaths = batch["impath"]
-        maps = []
-        for path in impaths:
-            map_tensor, conf_tensor = load_noiseprint(path)  # 分别加载 map 和 conf tensor
-            combined_map_conf = prepare_custom_map(map_tensor, conf_tensor)  # 只返回 map_tensor
 
-            maps.append(combined_map_conf)
 
-        maps_batch = torch.stack(maps)  
-        input = input.to(self.device)
-        maps_batch = maps_batch.to(self.device)
-        combined_input = torch.cat((input, maps_batch), dim=1).to(self.device)
-        combined_input = combined_input.to(self.dtype)
         label = batch["label"].to(self.device)
 
-        return combined_input, label'''
+        return input, label
