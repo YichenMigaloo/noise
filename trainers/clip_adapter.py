@@ -170,7 +170,7 @@ class CustomCLIP(nn.Module):
     
 
 
-def encode_output_path(image_path):
+'''def encode_output_path(image_path):
         directory, filename = os.path.split(image_path)
         new_directory = directory.replace('/images', '/noiseprint')
         output_filename = filename + ".npz"
@@ -186,7 +186,7 @@ def load_noiseprint(npz_path):
         map_tensor = torch.tensor(map_data)
         conf_tensor = torch.tensor(conf_data)
         
-        return map_tensor, conf_tensor
+        return map_tensor, conf_tensor'''
 
 '''def prepare_custom_map(map, conf):
     # 确保 map 和 conf 是 2D 的 [H, W]
@@ -203,17 +203,17 @@ def load_noiseprint(npz_path):
     
     return combined'''
 
-def prepare_noiseprint(noiseprint):
+'''def prepare_noiseprint(noiseprint):
     if len(noiseprint.shape) ==2:
         noiseprint = torch.from_numpy(noiseprint)
         noiseprint = noiseprint.unsqueeze(0)
     target_size = (224,224)
     transform = transforms.CenterCrop(target_size)
     noiseprint = transform(noiseprint)
-    return noiseprint
+    return noiseprint'''
 
 
-
+'''
 def modify_first_conv_layer(model, new_in_channels):
     old_conv = model.visual.conv1
     
@@ -240,7 +240,7 @@ def modify_first_conv_layer(model, new_in_channels):
     # 替换模型中的第一层卷积层
     model.visual.conv1 = new_conv
 
-    return model
+    return model'''
 
 
 
@@ -254,9 +254,9 @@ class CLIP_Adapter(TrainerX):
         classnames = self.dm.dataset.classnames
 
         print(f'Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})')
-        #clip_model = load_clip_to_cpu(cfg)
-        clip_model = load_vit_without_last_layer(cfg)
-        clip_model = modify_first_conv_layer(clip_model, new_in_channels=4)
+        clip_model = load_clip_to_cpu(cfg)
+        #clip_model = load_vit_without_last_layer(cfg)
+        #clip_model = modify_first_conv_layer(clip_model, new_in_channels=4)
         clip_model.float()
 
         print('Building custom CLIP')
@@ -303,12 +303,12 @@ class CLIP_Adapter(TrainerX):
         return loss_summary
 
     def parse_batch_train(self, batch):
-        '''input = batch['img']
+        input = batch['img']
         label = batch['label']
         input = input.to(self.device)
         label = label.to(self.device)
-        return input, label'''
-        input = batch["img"]  # 3通道RGB图像
+        return input, label
+        '''input = batch["img"]  # 3通道RGB图像
         impaths = batch["impath"]
         noiseprints = []
         
@@ -330,7 +330,7 @@ class CLIP_Adapter(TrainerX):
         print("combined_input, clip_adapter:", combined_input.shape)
         label = batch['label'].to(self.device)
 
-        return combined_input, label
+        return combined_input, label'''
     
     def load_model(self, directory, epoch=None):
         if not directory:

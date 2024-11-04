@@ -82,7 +82,7 @@ def load_noiseprint(npz_path):
     combined = torch.cat((map, conf), dim=0)
     
     return combined'''
-
+'''
 def prepare_noiseprint(noiseprint):
     if len(noiseprint.shape) ==2:
         noiseprint = torch.from_numpy(noiseprint)
@@ -91,7 +91,7 @@ def prepare_noiseprint(noiseprint):
     transform = transforms.CenterCrop(target_size)
     noiseprint = transform(noiseprint)
     return noiseprint
-
+'''
 class SimpleNet(nn.Module):
     """A simple neural network composed of a CNN backbone
     and optionally a head such as mlp for classification.
@@ -565,29 +565,7 @@ class SimpleTrainer(TrainerBase):
         input = input.to(self.device)
         label = label.to(self.device)
 
-        input = batch['img']  # 这是原始的 RGB 图像 (3 通道)
-    
-        # 获取每个图像对应的 noiseprint 数据
-        impaths = batch['impath']
-        maps = []
-        for path in impaths:
-            _, temp_map = getNoiseprint(path)
-            temp_map = prepare_noiseprint(temp_map)
-            maps.append(temp_map)
-
-        # 将所有 noiseprint 数据组合成 batch
-        maps_batch = torch.stack(maps)
-        
-        # 将 RGB 图像和 noiseprint 的 map 和 conf 合并为 5 通道输入
-        input = input.to(self.device)
-        maps_batch = maps_batch.to(self.device)
-        
-        # 将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
-        combined_input = torch.cat((input, maps_batch), dim=1)  # 在通道维度拼接，最终形成 5 通道张量
-        #print("combined_input shape:",combined_input.shape)
-        label = batch['label'].to(self.device)
-
-        return combined_input, label
+        return input, label
     
     def get_current_lr(self, names=None):
         names = self.get_model_names(names)
@@ -692,35 +670,14 @@ class TrainerXU(SimpleTrainer):
 
     def parse_batch_train(self, batch_x, batch_u):
         input_x = batch_x["img"]
-        impath_x = batch_x["impath"]
         label_x = batch_x["label"]
         input_u = batch_u["img"]
-        impath_u = batch_u["impath"]
 
-        maps_x = []
-        maps_u = []
-        for _ in impath_x:
-            images, noiseprint = getNoiseprint(_)
-            temp = prepare_noiseprint(noiseprint)
-            maps_x.append(temp)
-        
-        for _ in impath_u:
-            images, noiseprint = getNoiseprint(_)
-            temp = prepare_noiseprint(noiseprint)
-            maps_u.append(temp)
+        input_x = input_x.to(self.device)
+        label_x = label_x.to(self.device)
+        input_u = input_u.to(self.device)
 
-        '''input_x = input_x.to(self.device)
-        label_x = label_x.to(self.device)
-        input_u = input_u.to(self.device)'''
-        combined_input_x = torch.cat((input_x, maps_x), dim=1)
-        combined_input_u = torch.cat((input_u, maps_u), dim = 1)
-        label_x = label_x.to(self.device)
-        maps_u = maps_u.to(self.device)
-        combined_input_x = combined_input_x.to(self.device)
-        combined_input_u = combined_input_u.to(self.device)
-        #print("maps_x",maps_x.shape,"maps_u", maps_u.shape)
-        #return input_x, label_x, input_u
-        return combined_input_x, label_x, combined_input_u
+        return input_x, label_x, input_u
 
 
 class TrainerX(SimpleTrainer):
@@ -770,28 +727,15 @@ class TrainerX(SimpleTrainer):
 
     def parse_batch_train(self, batch):
         input = batch["img"]
-        impaths = batch["impath"]
-        maps = []
-        for path in impaths:
-            map_tensor, conf_tensor = load_noiseprint(path)
-            #print(map_tensor.shape, conf_tensor.shape)
-            temp = prepare_custom_map(map_tensor, conf_tensor)
-            maps.append(temp)
-            #print(len(maps),maps[0].shape)
-        maps_batch = torch.stack(maps)
-        #print("maps_batch",maps_batch.shape)
-
         label = batch["label"]
-        #input = input.to(self.device)
-        maps_batch = maps_batch.to(self.device)
         domain = batch["domain"]
-        #input = input.to(self.device)
+
+        input = input.to(self.device)
         label = label.to(self.device)
         domain = domain.to(self.device)
 
-
-
-        #
+        return input, label, domain
+        '''#
         input = batch['img']  # 这是原始的 RGB 图像 (3 通道)
     
         # 获取每个图像对应的 noiseprint 数据
@@ -803,18 +747,15 @@ class TrainerX(SimpleTrainer):
             noiseprints.append(noiseprint)
 
 
-        # 将所有 noiseprint 数据组合成 batch
         maps_batch = torch.stack(noiseprints)
         
-        # 将 RGB 图像和 noiseprint 的 map 和 conf 合并为 5 通道输入
         input = input.to(self.device)
         maps_batch = maps_batch.to(self.device)
         
-        # 将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
         combined_input = torch.cat((input, maps_batch), dim=1)  # 在通道维度拼接，最终形成 5 通道张量
         print("combined_input shape:",combined_input.shape)
         label = batch['label'].to(self.device)
 
         return combined_input, label, domain 
-        #
+        #'''
         return maps_batch, label, domain
