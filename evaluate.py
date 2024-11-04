@@ -126,7 +126,7 @@ def update_and_save_evaluation(model_name, dataset_name, accuracy, f1_score, ave
 def eval_linear_prob(args, dataset_path, dataset_names, image_extensions, device):
     print("*************")
     print("Evaluating Linear Probing Method!")
-    model_names = ['/content/drive/MyDrive/weights/selected_linearprob_models/CLIP_linear_prob_2_epoch_'+args.model+'_vit_large_with_augs.pth']
+    model_names = ['/content/noise/temp_output_linear_probCLIP_linear_prob_2.pth']
     model_evaluations = {}
     tfms = transforms.Compose([
                 transforms.CenterCrop(224),
