@@ -362,9 +362,13 @@ def main(args):
     print("Dataset path: " + dataset_path)
     print("Output path: " + args.output)
     
-    dataset_names = ['eg3d', 'gaugan',  'stargan', 'stylegan', 'stylegan2', 'stylegan3', 
+    '''dataset_names = ['progan', 'biggan', 'cyclegan', 'eg3d', 'gaugan',  'stargan', 'stylegan', 'stylegan2', 'stylegan3', 
                  'dalle2', 'glide_50_27', 'glide_100_10', 'glide_100_27', 'guided', 'ldm_100', 'ldm_200', 'ldm_200_cfg',
                  'sd_512x512', 'sdxl', 'taming', 'deepfake', 'firefly', 'midjourney_v5', 'dalle3', 'faceswap']
+    '''
+    dataset_names = ['biggan','cyclegan','dalle2','dalle3','deepfake','eg3d','faceswap','firefly','gaugan',
+                     'glide_50_27','glide_100_10','glide_100_27','guided','ldm_100','ldm_200','ldm_200_cfg',
+                     'midjourney_v5','progan','sd_512x512','sdxl','stargan','stylegan','stylegan2','stylegan3','taming']
     
     #dataset_names = ['progan','faceswap','dalle3','midjourney_v5']
     #dataset_names = ['progan','faceswap','midjourney_v5']
