@@ -21,6 +21,7 @@ class deepfake(DatasetBase):
         self.split_fewshot_dir = os.path.join(self.dataset_dir, "split_fewshot")
         mkdir_if_missing(self.split_fewshot_dir)
 
+        '''
         if os.path.exists(self.preprocessed):
             with open(self.preprocessed, "rb") as f:
                 preprocessed = pickle.load(f)
@@ -37,7 +38,12 @@ class deepfake(DatasetBase):
             preprocessed = {"train": train, "test": test}
             with open(self.preprocessed, "wb") as f:
                 pickle.dump(preprocessed, f, protocol=pickle.HIGHEST_PROTOCOL)
-
+        '''
+        text_file = os.path.join(self.dataset_dir, "classnames.txt")
+        classnames = self.read_classnames(text_file)
+        train = self.read_data(classnames, "train")
+        test = self.read_data(classnames, "val")
+        
         num_shots = cfg.DATASET.NUM_SHOTS
         if num_shots >= 1:
             seed = cfg.SEED
