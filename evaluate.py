@@ -324,7 +324,7 @@ def eval_adapter_prompt_network(args, dataset_path, dataset_names, image_extensi
     model_evaluations = {}
     splitted_string = model_names[0].split('/')[-2].split('_')[1]
     #num_ctx_tokens = int(re.split('(\d+)',splitted_string)[1])
-    num_ctx_tokens = 100
+    num_ctx_tokens = 16
     print('Num. Context Tokens: ', num_ctx_tokens)
     args.parser = dummy_parse_args()
     
@@ -342,7 +342,7 @@ def eval_adapter_prompt_network(args, dataset_path, dataset_names, image_extensi
         print("** System info **\n{}\n".format(collect_env_info()))
 
         trainer = build_trainer(cfg)
-        trainer.load_model(coop_args.model_dir, epoch=coop_args.load_epoch)
+        trainer.load_model(coop_args.model_dir, epoch=coop_args.load_epoch, strict = False)
 
         results, results_dict = trainer.test()
         update_and_save_evaluation(model_names[0], dataset, results_dict['accuracy'], results_dict['macro_f1'], results_dict['average_precision'], args.output, model_evaluations)
