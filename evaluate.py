@@ -293,7 +293,7 @@ def eval_prompt_tuning(args, dataset_path, dataset_names, image_extensions, devi
     model_evaluations = {}
     splitted_string = model_names[0].split('/')[-2].split('_')[1]
     num_ctx_tokens = int(re.split('(\d+)',splitted_string)[1])
-    print('Num. Context Tokens: ', num_ctx_tokens)
+    print('Num. Context Tokens: ', 16)
     args.parser = dummy_parse_args()
     for dataset in dataset_names:
         coop_args = get_parsed_args(model_names[0], dataset, num_ctx_tokens, dataset_path)
