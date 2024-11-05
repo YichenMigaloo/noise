@@ -289,7 +289,7 @@ def eval_prompt_tuning(args, dataset_path, dataset_names, image_extensions, devi
         model_names = ['content/drive/MyDrive/weights/100000_4context/']
     '''
 
-    model_names = ['/content/noise/train_outputs/coop_100k_2epochs/']
+    model_names = ['/content/noise/train_outputs/coop_100k_2epochs/prompt_learner']
     model_evaluations = {}
     splitted_string = model_names[0].split('/')[-2].split('_')[1]
     num_ctx_tokens = int(re.split('(\d+)',splitted_string)[1])
