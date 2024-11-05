@@ -9,7 +9,6 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import os
 import torchvision.transforms as transforms
-from noiseprint.Noiseprint import *
 
 from dassl.data import DataManager
 from dassl.optim import build_optimizer, build_lr_scheduler
