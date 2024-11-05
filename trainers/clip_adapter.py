@@ -13,7 +13,6 @@ import os
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 import torchvision.transforms as transforms
-from noiseprint.Noiseprint import *
 _tokenizer = _Tokenizer()
 
 
