@@ -309,6 +309,11 @@ def eval_prompt_tuning(args, dataset_path, dataset_names, image_extensions, devi
         print("** System info **\n{}\n".format(collect_env_info()))
 
         trainer = build_trainer(cfg)
+        if trainer._models['prompt_learner'].ctx.shape[0] != num_ctx_tokens:
+            print("Adjusting ctx to match the model checkpoint.")
+            trainer._models['prompt_learner'].ctx = torch.nn.Parameter(
+                torch.empty(num_ctx_tokens, trainer._models['prompt_learner'].ctx.shape[1])
+            )
         trainer.load_model(coop_args.model_dir, epoch=coop_args.load_epoch)
 
         results, results_dict = trainer.test()
