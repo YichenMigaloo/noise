@@ -324,7 +324,7 @@ def eval_adapter_prompt_network(args, dataset_path, dataset_names, image_extensi
     model_evaluations = {}
     splitted_string = model_names[0].split('/')[-2].split('_')[1]
     #num_ctx_tokens = int(re.split('(\d+)',splitted_string)[1])
-    num_ctx_tokens = 16
+    num_ctx_tokens = 100
     print('Num. Context Tokens: ', num_ctx_tokens)
     args.parser = dummy_parse_args()
     
