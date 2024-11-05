@@ -111,7 +111,7 @@ def extend_cfg_fine_tuned(cfg):
     cfg.TRAINER.COOP.CLASS_TOKEN_POSITION = "front"  # 'middle' or 'end' or 'front'
 
     cfg.TRAINER.COCOOP = CN()
-    cfg.TRAINER.COCOOP.N_CTX = 16  # number of context vectors
+    cfg.TRAINER.COCOOP.N_CTX = 100  # number of context vectors
     cfg.TRAINER.COCOOP.CTX_INIT = ""  # initialization words
     cfg.TRAINER.COCOOP.PREC = "fp16"  # fp16, fp32, amp
 
