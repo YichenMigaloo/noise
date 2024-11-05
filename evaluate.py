@@ -361,13 +361,13 @@ def main(args):
     dataset_path = args.dataset.replace("\\", "/")
     print("Dataset path: " + dataset_path)
     print("Output path: " + args.output)
-    '''
+    
     dataset_names = ['progan', 'biggan', 'cyclegan', 'eg3d', 'gaugan',  'stargan', 'stylegan', 'stylegan2', 'stylegan3', 
                  'dalle2', 'glide_50_27', 'glide_100_10', 'glide_100_27', 'guided', 'ldm_100', 'ldm_200', 'ldm_200_cfg',
                  'sd_512x512', 'sdxl', 'taming', 'deepfake', 'firefly', 'midjourney_v5', 'dalle3', 'faceswap']
-    '''
+    
     #dataset_names = ['progan','faceswap','dalle3','midjourney_v5']
-    dataset_names = ['progan','faceswap','midjourney_v5']
+    #dataset_names = ['progan','faceswap','midjourney_v5']
     if args.variant == 'linearProbing':
         eval_linear_prob(args, dataset_path, dataset_names, image_extensions, device)
     elif args.variant == 'promptTuning':
