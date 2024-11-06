@@ -40,51 +40,6 @@ from trainer import train_model
 
 device = 'cuda'
 
-class LinearClassifier(torch.nn.Module):
-    def __init__(self, dim, num_labels=2):
-        super(LinearClassifier, self).__init__()
-        torch.set_default_dtype(torch.float16)
-        self.num_labels = num_labels
-        self.linear = torch.nn.Linear(dim, num_labels)
-        self.linear.weight.data.normal_(mean=0.0, std=0.01)
-        self.linear.bias.data.zero_()
-
-    def forward(self, x):
-        # flatten
-        x = x.view(x.size(0), -1)
-        # linear layer
-        return self.linear(x)
-    
-
-class LinearClassifier(torch.nn.Module):
-    def __init__(self, dim, num_labels=2):
-        super(LinearClassifier, self).__init__()
-        torch.set_default_dtype(torch.float16)
-        self.linear = torch.nn.Linear(dim, num_labels)
-        self.linear.weight.data.normal_(mean=0.0, std=0.01)
-        self.linear.bias.data.zero_()
-
-    def forward(self, x):
-        # flatten
-        x = x.view(x.size(0), -1)
-        return self.linear(x)
-
-class modifiedmodel(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.feature_extractor, _ = clip.load("ViT-L/14", device="cpu")
-        self.visual = torch.nn.Sequential(*list(self.feature_extractor.visual.children())[:-1])
-        self.fc = LinearClassifier(1024, 2)
-
-    def forward(self, x):
-        # 确保输入是预处理后的Tensor
-        intermediate_output = self.visual(x)
-        # 全局平均池化减少维度到 [batch_size, 1024]
-        #intermediate_output = F.adaptive_avg_pool2d(intermediate_output, (1, 1)).squeeze(-1).squeeze(-1)
-        intermediate_output = intermediate_output.view(intermediate_output.size(0), -1)
-
-        output = self.fc(intermediate_output)
-        return output
 
 
 
@@ -139,7 +94,7 @@ def main(args):
 
     # model = CLIPModelOhja()
     #model = clipmodel()
-    model = modifiedmodel()
+    model = clipmodel()
     model.to(device)
 
     print('Turning off gradients in both the image and the text encoder')
