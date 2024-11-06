@@ -217,7 +217,7 @@ class TrainerBase:
             )
 
     def resume_model_if_exist(self, directory):
-        names = self.get_model_names()
+        '''names = self.get_model_names()
         file_missing = False
 
         for name in names:
@@ -239,7 +239,7 @@ class TrainerBase:
                 self._scheds[name]
             )
 
-        #return start_epoch
+        #return start_epoch'''
         return 0
 
     def load_model(self, directory, epoch=None):
