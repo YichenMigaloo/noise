@@ -59,12 +59,12 @@ class LinearClassifier(torch.nn.Module):
 class modifiedmodel(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.feature_extractor, self.preprocess = clip.load("ViT-L/14", device="cpu")
+        self.feature_extractor, self.preprocess = clip.load("ViT-L/14", device="cpu") # self.preprecess will not be used during training, which is handled in Dataset class 
+        # self.fc = nn.Linear(768, 2)
         self.visual = torch.nn.Sequential(*list(self.feature_extractor.visual.children())[:-1])
-        self.fc = LinearClassifier(768, 2)  
+        self.fc = LinearClassifier(768, 2)
     def forward(self, x):
-        x = torch.stack([self.preprocess(img) for img in x])  # 批量处理
-        
+        # with torch.no_grad():
         intermediate_output = self.visual(x)
         output = self.fc(intermediate_output)
         return output
