@@ -66,6 +66,7 @@ class modifiedmodel(torch.nn.Module):
     def forward(self, x):
         # with torch.no_grad():
         intermediate_output = self.visual(x)
+        print(intermediate_output.shape)
         output = self.fc(intermediate_output)
         return output
 
