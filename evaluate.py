@@ -209,7 +209,7 @@ def eval_fine_tuning(args, dataset_path, dataset_names, image_extensions, device
     print("*************")
     print("Evaluating Fine-Tuning Method!")
     
-    if '100k' in args.model:
+    '''if '100k' in args.model:
         model_names = ['/content/drive/MyDrive/weights/selected_finetuned_clip_model/finetuned_1_epoch_100k/finetuned_clip/']
     elif '80k' in args.model:
         model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_80k/']
@@ -218,7 +218,9 @@ def eval_fine_tuning(args, dataset_path, dataset_names, image_extensions, device
     elif '40k' in args.model:
         model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_40k/']
     elif '20k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_20k/']
+        model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_20k/']'''
+    
+    model_names = ['/content/noise/train_outputs/clip_full_finetune_100k_1epoch/']
     
     model_evaluations = {}
     args.parser = dummy_parse_args()
