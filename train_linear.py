@@ -65,8 +65,9 @@ class modifiedmodel(torch.nn.Module):
         self.fc = LinearClassifier(768, 2)
     def forward(self, x):
         # with torch.no_grad():
+        x = torch.stack([self.preprocess(img) for img in x])
         intermediate_output = self.visual(x)
-        print(intermediate_output.shape)
+        intermediate_output = F.adaptive_avg_pool2d(intermediate_output, (1, 1)).squeeze(-1).squeeze(-1)
         output = self.fc(intermediate_output)
         return output
 
