@@ -63,6 +63,8 @@ class modifiedmodel(torch.nn.Module):
         self.visual = torch.nn.Sequential(*list(self.feature_extractor.visual.children())[:-1])
         self.fc = LinearClassifier(768, 2)  
     def forward(self, x):
+        x = torch.stack([self.preprocess(img) for img in x])  # 批量处理
+        
         intermediate_output = self.visual(x)
         output = self.fc(intermediate_output)
         return output
