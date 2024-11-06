@@ -33,6 +33,30 @@ def load_clip_to_cpu(cfg):
 
     return model
 
+def load_vit_without_last_layer(cfg):
+    backbone_name = cfg.MODEL.BACKBONE.NAME
+    url = clip._MODELS[backbone_name]
+    model_path = clip._download(url)
+
+    try:
+        model = torch.jit.load(model_path, map_location = 'cpu').eval()
+        state_dict =None
+        model = torch.jit._unwrap_optional(torch.jit._recursive.wrap_cpp_module(model._c))  # unwrap model
+
+    except RuntimeError:
+        state_dict = torch.load(model_path, map_location="cpu")
+    
+    model = clip.build_model(state_dict or model.state_dict())
+    original_forward = model.visual.forward
+
+    def forward_without_proj(x):
+        x = original_forward(x)
+        if hasattr(model.visual, 'proj'):
+            x = x  
+        return x
+
+    model.visual.forward = forward_without_proj
+    return model
 
 class TextEncoder(nn.Module):
     def __init__(self, clip_model):
@@ -229,8 +253,8 @@ class CoOp(TrainerX):
         classnames = self.dm.dataset.classnames
 
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
-        clip_model = load_clip_to_cpu(cfg)
-        
+        #clip_model = load_clip_to_cpu(cfg)
+        clip_model = load_vit_without_last_layer(cfg)
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             # CLIP's default precision is fp16
             clip_model.float()
