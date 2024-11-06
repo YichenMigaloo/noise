@@ -80,7 +80,9 @@ class modifiedmodel(torch.nn.Module):
         # 确保输入是预处理后的Tensor
         intermediate_output = self.visual(x)
         # 全局平均池化减少维度到 [batch_size, 1024]
-        intermediate_output = F.adaptive_avg_pool2d(intermediate_output, (1, 1)).squeeze(-1).squeeze(-1)
+        #intermediate_output = F.adaptive_avg_pool2d(intermediate_output, (1, 1)).squeeze(-1).squeeze(-1)
+        intermediate_output = intermediate_output.view(intermediate_output.size(0), -1)
+
         output = self.fc(intermediate_output)
         return output
 
