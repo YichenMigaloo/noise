@@ -415,10 +415,8 @@ class UnifiedTrainer(TrainerX):
         return maps_batch, label'''
     
 
-        input = batch["img"]
+        input = batch["img"].to(self.device)
     
-        impaths = batch["impath"]
-
 
         label = batch["label"].to(self.device)
 
