@@ -349,7 +349,7 @@ def eval_adapter_prompt_network(args, dataset_path, dataset_names, image_extensi
         print("** System info **\n{}\n".format(collect_env_info()))
 
         trainer = build_trainer(cfg)
-        trainer.load_model(coop_args.model_dir, epoch=coop_args.load_epoch, strict = False)
+        trainer.load_model(coop_args.model_dir, epoch=coop_args.load_epoch)
 
         results, results_dict = trainer.test()
         update_and_save_evaluation(model_names[0], dataset, results_dict['accuracy'], results_dict['macro_f1'], results_dict['average_precision'], args.output, model_evaluations)
