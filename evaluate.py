@@ -260,15 +260,15 @@ def eval_adapter_network(args, dataset_path, dataset_names, image_extensions, de
     print("Evaluating Adapter Network Method!")
 
     if '100k' in args.model:
-        model_names = ['/noise/train_outputs/adapter_10k/']
+        model_names = ['/content/noise/train_outputs/adapter_10k/']
     elif '80k' in args.model:
-        model_names = ['/noise/train_outputs/adapter_80k/']
+        model_names = ['/content/noise/train_outputs/adapter_80k/']
     elif '60k' in args.model:
-        model_names = ['/noise/train_outputs/adapter_60k/']
+        model_names = ['/content/noise/train_outputs/adapter_60k/']
     elif '40k' in args.model:
-        model_names = ['/noise/train_outputs/adapter_40k/']
+        model_names = ['/content/noise/train_outputs/adapter_40k/']
     elif '20k' in args.model:
-        model_names = ['/noise/train_outputs/adapter_20k/']
+        model_names = ['/content/noise/train_outputs/adapter_20k/']
     
     model_evaluations = {}
     args.parser = dummy_parse_args()
