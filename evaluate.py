@@ -126,7 +126,17 @@ def update_and_save_evaluation(model_name, dataset_name, accuracy, f1_score, ave
 def eval_linear_prob(args, dataset_path, dataset_names, image_extensions, device):
     print("*************")
     print("Evaluating Linear Probing Method!")
-    model_names = ['/content/noise/temp_output_linear_probCLIP_linear_prob_2.pth']
+    model_name = []
+    if '100k' in args.model:
+        model_names = ['/content/noise/temp_output_linear_probCLIP_linear_prob_100k_2.pth']
+    elif '80k' in args.model:
+        model_names = ['/content/noise/temp_output_linear_probCLIP_linear_prob_80k_2.pth']
+    elif '60k' in args.model:
+        model_names = ['/content/noise/temp_output_linear_probCLIP_linear_prob_60k_2.pth']
+    elif '40k' in args.model:
+        model_names = ['/content/noise/temp_output_linear_probCLIP_linear_prob_40k_2.pth']
+    elif '20k' in args.model:
+        model_names = ['/content/noise/temp_output_linear_probCLIP_linear_prob_20k_2.pth']
     model_evaluations = {}
     tfms = transforms.Compose([
                 transforms.CenterCrop(224),
