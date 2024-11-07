@@ -411,7 +411,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--variant", type=str, default="linearProbing", choices=["linearProbing", "promptTuning", "fineTuning", "adapterNetwork","adapterPrompt"], help="name of the adaptation method")
-    parser.add_argument("--model", type=str, choices=["100k", "100k_16", "100k_8", "100k_4"], default="100k", help="name of linear probing model to evaluate")
+    parser.add_argument("--model", type=str, choices=["100k", "100k_16", "100k_8", "100k_4", '20k','40k','60k','80k'], default="100k", help="name of linear probing model to evaluate")
     parser.add_argument("--dataset", type=str, default="", help="path to dataset")
     parser.add_argument("--output", type=str, default="", help="output directory to write results")
     
