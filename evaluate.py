@@ -354,6 +354,8 @@ def eval_adapter_prompt_network(args, dataset_path, dataset_names, image_extensi
         model_names = ['/content/noise/train_outputs/adapterprompt80k_2epochs/']
     elif '100k' in args.model:
         model_names = ['/content/noise/train_outputs/adapterprompt100k_2epochs/']
+    elif 'fewshot' in args.model:
+        model_names = ['/content/noise/train_outputs/adapterprompt640_2epochs/']
 
     
     model_evaluations = {}
@@ -427,7 +429,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--variant", type=str, default="linearProbing", choices=["linearProbing", "promptTuning", "fineTuning", "adapterNetwork","adapterPrompt"], help="name of the adaptation method")
-    parser.add_argument("--model", type=str, choices=["100k", "100k_16", "100k_8", "100k_4", '20k','40k','60k','80k'], default="100k", help="name of linear probing model to evaluate")
+    parser.add_argument("--model", type=str, choices=["100k", "100k_16", "100k_8", "100k_4", '20k','40k','60k','80k','fewshot'], default="100k", help="name of linear probing model to evaluate")
     parser.add_argument("--dataset", type=str, default="", help="path to dataset")
     parser.add_argument("--output", type=str, default="", help="output directory to write results")
     
