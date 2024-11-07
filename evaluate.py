@@ -299,6 +299,8 @@ def eval_prompt_tuning(args, dataset_path, dataset_names, image_extensions, devi
         model_names = ['/content/noise/train_outputs/coop_20k_2epochs/']
     elif '40k' in args.model:
         model_names = ['/content/noise/train_outputs/coop_40k_2epochs/']
+    elif '60k' in args.model:
+        model_names = ['/content/noise/train_outputs/coop_60k_2epochs/']
     elif '80k' in args.model:
         model_names = ['/content/noise/train_outputs/coop_80k_2epochs/']
     elif '100k' in args.model:
