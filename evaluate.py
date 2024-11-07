@@ -343,7 +343,17 @@ def eval_adapter_prompt_network(args, dataset_path, dataset_names, image_extensi
     print("*************")
     print("Evaluating Adapter + Prompt Tuning Method!")
 
-    model_names = ['/content/noise/train_outputs/improve_2epochs/']
+    model_name = []
+    if '20k' in args.model:
+        model_names = ['/content/noise/train_outputs/adapterprompt20k_2epochs/']
+    elif '40k' in args.model:
+        model_names = ['/content/noise/train_outputs/adapterprompt40k_2epochs/']
+    elif '60k' in args.model:
+        model_names = ['/content/noise/train_outputs/adapterprompt60k_2epochs/']
+    elif '80k' in args.model:
+        model_names = ['/content/noise/train_outputs/adapterprompt80k_2epochs/']
+    elif '100k' in args.model:
+        model_names = ['/content/noise/train_outputs/adapterprompt100k_2epochs/']
 
     
     model_evaluations = {}
