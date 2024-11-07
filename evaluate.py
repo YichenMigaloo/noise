@@ -219,18 +219,18 @@ def eval_fine_tuning(args, dataset_path, dataset_names, image_extensions, device
     print("*************")
     print("Evaluating Fine-Tuning Method!")
     
-    '''if '100k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/selected_finetuned_clip_model/finetuned_1_epoch_100k/finetuned_clip/']
+    model_names = []
+    if '100k' in args.model:
+        model_names = ['/content/noise/train_outputs/clip_full_finetune_100k_1epoch/']
     elif '80k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_80k/']
+        model_names = ['/content/noise/train_outputs/clip_full_finetune_80k_1epoch/']
     elif '60k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_60k/']
+        model_names = ['/content/noise/train_outputs/clip_full_finetune_60k_1epoch/']
     elif '40k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_40k/']
+        model_names = ['/content/noise/train_outputs/clip_full_finetune_40k_1epoch/']
     elif '20k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/finetuned_1_epoch_20k/']'''
+        model_names = ['/content/noise/train_outputs/clip_full_finetune_20k_1epoch/']
     
-    model_names = ['/content/noise/train_outputs/clip_full_finetune_100k_1epoch/']
     
     model_evaluations = {}
     args.parser = dummy_parse_args()
@@ -252,21 +252,23 @@ def eval_fine_tuning(args, dataset_path, dataset_names, image_extensions, device
 
         results, results_dict = trainer.test()
         update_and_save_evaluation(model_names[0], dataset, results_dict['accuracy'], results_dict['macro_f1'], results_dict['average_precision'], args.output, model_evaluations)
+        print('--------------')
+
 
 def eval_adapter_network(args, dataset_path, dataset_names, image_extensions, device):
     print("*************")
     print("Evaluating Adapter Network Method!")
 
     if '100k' in args.model:
-        model_names = ['/content/noise/train_outputs/improve_2epochs/']
+        model_names = ['/noise/train_outputs/adapter_10k/']
     elif '80k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/selected_clip_adapter_models/clipadapter_40k_real_fake_04/']
+        model_names = ['/noise/train_outputs/adapter_80k/']
     elif '60k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/selected_clip_adapter_models/clipadapter_30k_real_fake_04/']
+        model_names = ['/noise/train_outputs/adapter_60k/']
     elif '40k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/selected_clip_adapter_models/clipadapter_20k_real_fake_04/']
+        model_names = ['/noise/train_outputs/adapter_40k/']
     elif '20k' in args.model:
-        model_names = ['/content/drive/MyDrive/weights/selected_clip_adapter_models/clipadapter_10k_real_fake_04/']
+        model_names = ['/noise/train_outputs/adapter_20k/']
     
     model_evaluations = {}
     args.parser = dummy_parse_args()
@@ -301,7 +303,7 @@ def eval_prompt_tuning(args, dataset_path, dataset_names, image_extensions, devi
         model_names = ['content/drive/MyDrive/weights/100000_4context/']
     '''
 
-    model_names = ['/content/noise/train_outputs/coop_100k_2epochs/']
+    model_names = ['/content/noise/train_outputs/coop_20k_2epochs/']
     model_evaluations = {}
     splitted_string = model_names[0].split('/')[-2].split('_')[1]
     num_ctx_tokens = int(re.split('(\d+)',splitted_string)[1])
