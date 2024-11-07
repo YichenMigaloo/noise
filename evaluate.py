@@ -128,15 +128,15 @@ def eval_linear_prob(args, dataset_path, dataset_names, image_extensions, device
     print("Evaluating Linear Probing Method!")
     model_name = []
     if '100k' in args.model:
-        model_names = ['/content/noise/temp_output_linear_prob100kCLIP_linear_prob_2.pth']
+        model_names = ['/content/noise/temp_output_linear_prob_100kCLIP_linear_prob_2.pth']
     elif '80k' in args.model:
-        model_names = ['/content/noise/temp_output_linear_prob80kCLIP_linear_prob_2.pth']
+        model_names = ['/content/noise/temp_output_linear_prob_80kCLIP_linear_prob_2.pth']
     elif '60k' in args.model:
-        model_names = ['/content/noise/temp_output_linear_prob60kCLIP_linear_prob_2.pth']
+        model_names = ['/content/noise/temp_output_linear_prob_60kCLIP_linear_prob_2.pth']
     elif '40k' in args.model:
         model_names = ['/content/noise/temp_output_linear_prob_40kCLIP_linear_prob_2.pth']
     elif '20k' in args.model:
-        model_names = ['/content/noise/temp_output_linear_prob20kCLIP_linear_prob_2.pth']
+        model_names = ['/content/noise/temp_output_linear_prob_20kCLIP_linear_prob_2.pth']
     model_evaluations = {}
     tfms = transforms.Compose([
                 transforms.CenterCrop(224),
