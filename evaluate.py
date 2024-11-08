@@ -271,6 +271,8 @@ def eval_adapter_network(args, dataset_path, dataset_names, image_extensions, de
         model_names = ['/content/noise/train_outputs/adapter_40k/']
     elif '20k' in args.model:
         model_names = ['/content/noise/train_outputs/adapter_20k/']
+    elif 'fewshot' in args.model:
+        model_names = ['/content/noise/train_outputs/adapter_640/']
     
     model_evaluations = {}
     args.parser = dummy_parse_args()
