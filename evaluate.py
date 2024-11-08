@@ -137,6 +137,8 @@ def eval_linear_prob(args, dataset_path, dataset_names, image_extensions, device
         model_names = ['/content/noise/temp_output_linear_prob_40kCLIP_linear_prob_2.pth']
     elif '20k' in args.model:
         model_names = ['/content/noise/temp_output_linear_prob_20kCLIP_linear_prob_2.pth']
+    elif 'fewshot' in args.model:
+        model_names = ['/content/noise/temp_output_linear_prob_640CLIP_linear_prob_2.pth']
     model_evaluations = {}
     tfms = transforms.Compose([
                 transforms.CenterCrop(224),
