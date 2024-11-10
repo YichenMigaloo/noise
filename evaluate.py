@@ -232,6 +232,9 @@ def eval_fine_tuning(args, dataset_path, dataset_names, image_extensions, device
         model_names = ['/content/noise/train_outputs/clip_full_finetune_40k_1epoch/']
     elif '20k' in args.model:
         model_names = ['/content/noise/train_outputs/clip_full_finetune_20k_1epoch/']
+    elif 'fewshot' in args.model:
+        model_names = ['/content/noise/train_outputs/clip_full_finetune_640_1epoch/']
+
     
     
     model_evaluations = {}
