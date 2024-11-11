@@ -139,8 +139,8 @@ def main(args):
 
     # model = CLIPModelOhja()
     #model = clipmodel()
-    #model = clipmodel()
-    model = modifiedmodel()
+    model = clipmodel()
+    #model = modifiedmodel()
     model.to(device)
 
     print('Turning off gradients in both the image and the text encoder')
