@@ -68,16 +68,15 @@ class modifiedmodel(torch.nn.Module):
         '''intermediate_output = self.feature_extractor.encode_image(x)
         output = self.fc(intermediate_output)
         return output'''
-        x = self.feature_extractor.visual.conv1(x)  # Patch embedding
-        x = x.reshape(x.shape[0], x.shape[1], -1)  # 将图像转成 2D 形式
-        x = x.permute(0, 2, 1)  # 调整维度以适配 transformer 输入
+        x = self.feature_extractor.visual.conv1(x)  
+        x = x.reshape(x.shape[0], x.shape[1], -1) 
+        x = x.permute(0, 2, 1)  
         x = torch.cat([self.feature_extractor.visual.class_embedding.unsqueeze(0).repeat(x.shape[0], 1, 1), x], dim=1)
-        x = x + self.feature_extractor.visual.positional_embedding  # 加上位置编码
-        x = self.feature_extractor.visual.ln_pre(x)  # 经过 layer norm
+        x = x + self.feature_extractor.visual.positional_embedding  
+        x = self.feature_extractor.visual.ln_pre(x)  
             
-            # 通过 transformer 编码器
         visual_features = self.feature_extractor.visual.transformer(x)
-        cls_token_output = visual_features[:, 0, :]  # 提取 [CLS] token 特征
+        cls_token_output = visual_features[:, 0, :]  
 
         output = self.fc(cls_token_output)
         return output
