@@ -68,7 +68,7 @@ class modifiedmodel(torch.nn.Module):
         '''intermediate_output = self.feature_extractor.encode_image(x)
         output = self.fc(intermediate_output)
         return output'''
-        visual_features = self.feature_extractor.visual(x)
+        visual_features = self.feature_extractor.visual.transformer(x)
         cls_token_output = visual_features[:, 0, :]
         output = self.fc(cls_token_output)
         return output
