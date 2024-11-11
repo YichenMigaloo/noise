@@ -61,7 +61,7 @@ class modifiedmodel(torch.nn.Module):
         super().__init__()
         self.feature_extractor, self.preprocess = clip.load("ViT-L/14", device="cpu") # self.preprecess will not be used during training, which is handled in Dataset class 
         # self.fc = nn.Linear(768, 2)
-        self.fc = LinearClassifier(768, 2)
+        self.fc = LinearClassifier(1024, 16)
 
     def forward(self, x):
         # with torch.no_grad():
