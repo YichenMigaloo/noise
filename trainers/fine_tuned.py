@@ -152,8 +152,8 @@ class FineTuned_CLIP(TrainerX):
         classnames = self.dm.dataset.classnames
 
         print(f'Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})')
-        clip_model = load_clip_to_cpu(cfg)
-        #clip_model = load_vit_without_last_layer(cfg)
+        #clip_model = load_clip_to_cpu(cfg)
+        clip_model = load_vit_without_last_layer(cfg)
         clip_model.float()
 
         print('Building custom CLIP')
