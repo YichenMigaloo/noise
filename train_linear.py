@@ -152,7 +152,7 @@ def main(args):
     params = sum([np.prod(p.size()) for p in model_parameters])
     print('Trainable Parameters: ', str(params))
     
-    epochs = 2
+    epochs = 20
     lr = 3e-3
     # gamma = 0.7
     warmup_epochs = 0
