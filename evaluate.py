@@ -74,6 +74,8 @@ from eval_utils_fine_tuned import print_args_fine_tuned, reset_cfg_fine_tuned, e
 from eval_utils_adapter import print_args_adapter, reset_cfg_adapter, extend_cfg_adapter, setup_cfg_adapter, get_parsed_args_adapter
 from eval_adapter_prompt import setup_cfg_adapter_prompt, get_parsed_args_adapter_prompt
 
+from train_linear import modifiedmodel
+
 def seed_everything(seed):
         random.seed(seed)
         os.environ['PYTHONHASHSEED'] = str(seed)
@@ -146,7 +148,7 @@ def eval_linear_prob(args, dataset_path, dataset_names, image_extensions, device
                 transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
             ])
     for model_name in model_names:
-        model_ours = clipmodel()
+        model_ours = modifiedmodel()
         model_ours.load_state_dict(torch.load(model_name), strict=True)
         model_ours.eval()
         model_ours.cuda()
