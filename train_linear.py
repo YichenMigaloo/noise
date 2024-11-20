@@ -62,16 +62,15 @@ class modifiedmodel(torch.nn.Module):
         self.feature_extractor, self.preprocess = clip.load("ViT-L/14", device="cpu") # self.preprecess will not be used during training, which is handled in Dataset class 
         # self.fc = nn.Linear(768, 2)
         
-        model, preprocess = clip.load("ViT-L/14", device="cpu")
 
         # 打印原始 Transformer 的 Block 数量
-        print("Original Transformer Blocks:", len(model.visual.transformer.resblocks))
+        print("Original Transformer Blocks:", len(self.feature_extractor.visual.transformer.resblocks))
 
         # 移除最后一个 Transformer Block
-        model.visual.transformer.resblocks = torch.nn.Sequential(*list(model.visual.transformer.resblocks[:-1]))
+        self.feature_extractor.visual.transformer.resblocks = torch.nn.Sequential(*list(self.feature_extractor.visual.transformer.resblocks[:-1]))
 
         # 打印修改后的 Transformer 的 Block 数量
-        print("Modified Transformer Blocks:", len(model.visual.transformer.resblocks))
+        print("Modified Transformer Blocks:", len(self.feature_extractor.visual.transformer.resblocks))
 
 
         self.fc = LinearClassifier(768, 2)
