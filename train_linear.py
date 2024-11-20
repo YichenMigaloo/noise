@@ -61,24 +61,13 @@ class modifiedmodel(torch.nn.Module):
         super().__init__()
         self.feature_extractor, self.preprocess = clip.load("ViT-L/14", device="cpu") # self.preprecess will not be used during training, which is handled in Dataset class 
         # self.fc = nn.Linear(768, 2)
-        self.fc = LinearClassifier(1024, 16)
+        print(self.feature_extractor)
+        self.fc = LinearClassifier(768, 2)
 
     def forward(self, x):
         # with torch.no_grad():
-        '''intermediate_output = self.feature_extractor.encode_image(x)
+        intermediate_output = self.feature_extractor.encode_image(x)
         output = self.fc(intermediate_output)
-        return output'''
-        x = self.feature_extractor.visual.conv1(x)  
-        x = x.reshape(x.shape[0], x.shape[1], -1) 
-        x = x.permute(0, 2, 1)  
-        x = torch.cat([self.feature_extractor.visual.class_embedding.unsqueeze(0).repeat(x.shape[0], 1, 1), x], dim=1)
-        x = x + self.feature_extractor.visual.positional_embedding  
-        x = self.feature_extractor.visual.ln_pre(x)  
-            
-        visual_features = self.feature_extractor.visual.transformer(x)
-        cls_token_output = visual_features[:, 0, :]  
-
-        output = self.fc(cls_token_output)
         return output
 
 
@@ -139,8 +128,8 @@ def main(args):
 
     # model = CLIPModelOhja()
     #model = clipmodel()
-    model = clipmodel()
-    #model = modifiedmodel()
+    #model = clipmodel()
+    model = modifiedmodel()
     model.to(device)
 
     print('Turning off gradients in both the image and the text encoder')
