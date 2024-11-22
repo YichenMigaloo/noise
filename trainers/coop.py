@@ -31,8 +31,8 @@ def load_vit_without_last_transformer_block(cfg):
     model = clip.build_model(state_dict or model.state_dict())
     print("Original Transformer Blocks:", len(model.visual.transformer.resblocks))
 
-    print("Model structure before removing the last transformer block:")
-    print(model)
+    '''print("Model structure before removing the last transformer block:")
+    print(model)'''
 
     vision_transformer = model.visual
     if hasattr(vision_transformer, 'transformer') and hasattr(vision_transformer.transformer, 'resblocks'):
@@ -45,8 +45,8 @@ def load_vit_without_last_transformer_block(cfg):
     model.visual = vision_transformer
     print("Modified Transformer Blocks:", len(model.visual.transformer.resblocks))
 
-    print("Model structure after removing the last transformer block:")
-    print(model)
+    '''print("Model structure after removing the last transformer block:")
+    print(model)'''
 
     return model
 
