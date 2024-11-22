@@ -78,6 +78,31 @@ def load_clip_to_cpu(cfg):
 
     return model
 
+
+def load_vit_without_last_transformer_block(cfg):
+    backbone_name = cfg.MODEL.BACKBONE.NAME
+    url = clip._MODELS[backbone_name]
+    model_path = clip._download(url)
+    
+    try:
+        # loading JIT archive
+        model = torch.jit.load(model_path, map_location='cpu').eval()
+        state_dict = None
+    
+    except RuntimeError:
+        state_dict = torch.load(model_path, map_location='cpu')
+    
+    model = clip.build_model(state_dict or model.state_dict())
+    vision_transformer = model.visual
+    if hasattr(vision_transformer, 'transformer') and hasattr(vision_transformer.transformer, 'resblocks'):
+        vision_transformer.transformer.resblocks = vision_transformer.transformer.resblocks[:-1]
+    else:
+        raise AttributeError("The visual transformer structure does not have 'transformer' or 'resblocks' attributes.")
+    print("Model structure after removing the last transformer block:")
+    print(model)
+
+    return model
+
 def load_vit_without_last_layer(cfg):
     backbone_name = cfg.MODEL.BACKBONE.NAME
     url = clip._MODELS[backbone_name]
@@ -152,8 +177,9 @@ class FineTuned_CLIP(TrainerX):
         classnames = self.dm.dataset.classnames
 
         print(f'Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})')
-        clip_model = load_clip_to_cpu(cfg)
+        #clip_model = load_clip_to_cpu(cfg)
         #clip_model = load_vit_without_last_layer(cfg)
+        clip_model = load_vit_without_last_transformer_block(cfg)
         clip_model.float()
 
         print('Building custom CLIP')
