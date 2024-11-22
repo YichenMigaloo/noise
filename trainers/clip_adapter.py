@@ -61,6 +61,33 @@ CUSTOM_TEMPLATES = {
     'progan_train': 'a {} photo.',
 }
 
+def load_vit_without_last_transformer_block(cfg):
+    backbone_name = cfg.MODEL.BACKBONE.NAME
+    url = clip._MODELS[backbone_name]
+    model_path = clip._download(url)
+    
+    try:
+        # loading JIT archive
+        model = torch.jit.load(model_path, map_location='cpu').eval()
+        state_dict = None
+    
+    except RuntimeError:
+        state_dict = torch.load(model_path, map_location='cpu')
+    
+    model = clip.build_model(state_dict or model.state_dict())
+
+    print("Model structure before removing the last transformer block:")
+    print(model)
+
+    vision_transformer = model.visual
+    if hasattr(vision_transformer, 'transformer') and hasattr(vision_transformer.transformer, 'resblocks'):
+        vision_transformer.transformer.resblocks = vision_transformer.transformer.resblocks[:-1]
+    else:
+        raise AttributeError("The visual transformer structure does not have 'transformer' or 'resblocks' attributes.")
+    print("Model structure after removing the last transformer block:")
+    print(model)
+
+    return model
 
 def load_clip_to_cpu(cfg):
     backbone_name = cfg.MODEL.BACKBONE.NAME
