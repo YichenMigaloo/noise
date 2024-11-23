@@ -376,7 +376,9 @@ class UnifiedTrainer(TrainerX):
         print(f"Classnames:{classnames}")
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
         #clip_model = load_clip_to_cpu(cfg)
-        clip_model = load_vit_without_last_layer(cfg)
+        #clip_model = load_vit_without_last_layer(cfg)
+        clip_model = load_vit_without_last_transformer_block(cfg)
+
         #clip_model = modify_first_conv_layer(clip_model, new_in_channels=5)
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             clip_model.float()
