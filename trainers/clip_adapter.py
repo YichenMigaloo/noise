@@ -404,8 +404,7 @@ def load_vit_without_last_transformer_block(cfg):
     model = clip.build_model(state_dict or model.state_dict())
     print("Original Transformer Blocks:", len(model.visual.transformer.resblocks))
 
-    '''print("Model structure before removing the last transformer block:")
-    print(model)'''
+
 
     vision_transformer = model.visual
     if hasattr(vision_transformer, 'transformer') and hasattr(vision_transformer.transformer, 'resblocks'):
@@ -418,8 +417,7 @@ def load_vit_without_last_transformer_block(cfg):
     model.visual = vision_transformer
     print("Modified Transformer Blocks:", len(model.visual.transformer.resblocks))
 
-    '''print("Model structure after removing the last transformer block:")
-    print(model)'''
+
 
     return model
 
@@ -530,77 +528,7 @@ class CustomCLIP(nn.Module):
     
 
 
-'''def encode_output_path(image_path):
-        directory, filename = os.path.split(image_path)
-        new_directory = directory.replace('/images', '/noiseprint')
-        output_filename = filename + ".npz"
-        output_path = os.path.join(new_directory, output_filename)
-        return output_path
-def load_noiseprint(npz_path):
-        output_path = encode_output_path(npz_path)
-        data = np.load(output_path)
-        map_data = data['map']
-        conf_data = data['conf']
-        
-        # Convert numpy arrays to torch tensors
-        map_tensor = torch.tensor(map_data)
-        conf_tensor = torch.tensor(conf_data)
-        
-        return map_tensor, conf_tensor'''
 
-'''def prepare_custom_map(map, conf):
-    # 确保 map 和 conf 是 2D 的 [H, W]
-    if len(map.shape) == 2:
-        map = map.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
-    if len(conf.shape) == 2:
-        conf = conf.unsqueeze(0)  # 添加通道维度，变为 [1, H, W]
-    target_size = (224,224)
-    transform = transforms.CenterCrop(target_size)
-    map = transform(map)
-    conf = transform(conf)
-    #blank = torch.zeros_like(map)
-    combined = torch.cat((map, conf), dim=0)
-    
-    return combined'''
-
-'''def prepare_noiseprint(noiseprint):
-    if len(noiseprint.shape) ==2:
-        noiseprint = torch.from_numpy(noiseprint)
-        noiseprint = noiseprint.unsqueeze(0)
-    target_size = (224,224)
-    transform = transforms.CenterCrop(target_size)
-    noiseprint = transform(noiseprint)
-    return noiseprint'''
-
-
-'''
-def modify_first_conv_layer(model, new_in_channels):
-    old_conv = model.visual.conv1
-    
-    # 创建一个新的卷积层，修改输入通道数为5
-    new_conv = nn.Conv2d(
-        in_channels=new_in_channels,  # 修改输入通道数为5
-        out_channels=old_conv.out_channels,  # 保持输出通道数不变
-        kernel_size=old_conv.kernel_size,
-        stride=old_conv.stride,
-        padding=old_conv.padding,
-        bias=old_conv.bias is not None  # 保留是否有bias
-    )
-    
-    # 初始化新的卷积层
-    with torch.no_grad():
-        # 将原始3通道的卷积权重复制到新卷积层的前3个通道
-        new_conv.weight[:, :3, :, :] = old_conv.weight  # 保持前3个通道的权重
-        # 对新增的两个通道 (map 和 conf) 进行随机初始化
-        nn.init.kaiming_normal_(new_conv.weight[:, 3:, :, :], mode='fan_out', nonlinearity='relu')
-
-        if old_conv.bias is not None:
-            new_conv.bias = old_conv.bias
-    
-    # 替换模型中的第一层卷积层
-    model.visual.conv1 = new_conv
-
-    return model'''
 
 
 
@@ -669,29 +597,7 @@ class CLIP_Adapter(TrainerX):
         input = input.to(self.device)
         label = label.to(self.device)
         return input, label
-        '''input = batch["img"]  # 3通道RGB图像
-        impaths = batch["impath"]
-        noiseprints = []
         
-        for img_path in impaths:
-            _,noise_print=getNoiseprint(img_path)
-            noise_print = prepare_noiseprint(noise_print)
-            noiseprints.append(noise_print)
-
-
-        # 将所有 noiseprint 数据组合成 batch
-        maps_batch = torch.stack(noiseprints)
-        
-        # 将 RGB 图像和 noiseprint 的 map 和 conf 合并为 5 通道输入
-        input = input.to(self.device)
-        maps_batch = maps_batch.to(self.device)
-        
-        # 在通道维度上将 RGB 图像 (3 通道) 和 noiseprint map + conf (2 通道) 合并为 5 通道输入
-        combined_input = torch.cat((input, maps_batch), dim=1)  # 在通道维度拼接，最终形成 5 通道张量
-        print("combined_input, clip_adapter:", combined_input.shape)
-        label = batch['label'].to(self.device)
-
-        return combined_input, label'''
     
     def load_model(self, directory, epoch=None):
         if not directory:
