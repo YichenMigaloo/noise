@@ -167,39 +167,21 @@ class DataManager:
         dataset_name = cfg.DATASET.NAME
         source_domains = cfg.DATASET.SOURCE_DOMAINS
         target_domains = cfg.DATASET.TARGET_DOMAINS
-        if isinstance(dataset_name, list):
-            for i in dataset_name:
-                table = []
-                table.append(["Dataset", i])
-                if source_domains:
-                    table.append(["Source", source_domains])
-                if target_domains:
-                    table.append(["Target", target_domains])
-                table.append(["# classes", f"{self.num_classes:,}"])
-                table.append(["# train_x", f"{len(self.dataset.train_x):,}"])
-                if self.dataset.train_u:
-                    table.append(["# train_u", f"{len(self.dataset.train_u):,}"])
-                if self.dataset.val:
-                    table.append(["# val", f"{len(self.dataset.val):,}"])
-                table.append(["# test", f"{len(self.dataset.test):,}"])
 
-                print(tabulate(table))
-        else:
-
-            table = []
-            table.append(["Dataset", dataset_name])
-            if source_domains:
-                table.append(["Source", source_domains])
-            if target_domains:
-                table.append(["Target", target_domains])
-            table.append(["# classes", f"{self.num_classes:,}"])
-            table.append(["# train_x", f"{len(self.dataset.train_x):,}"])
-            if self.dataset.train_u:
-                table.append(["# train_u", f"{len(self.dataset.train_u):,}"])
-            if self.dataset.val:
-                table.append(["# val", f"{len(self.dataset.val):,}"])
-            table.append(["# test", f"{len(self.dataset.test):,}"])
-            print(tabulate(table))
+        table = []
+        table.append(["Dataset", dataset_name])
+        if source_domains:
+            table.append(["Source", source_domains])
+        if target_domains:
+            table.append(["Target", target_domains])
+        table.append(["# classes", f"{self.num_classes:,}"])
+        table.append(["# train_x", f"{len(self.dataset.train_x):,}"])
+        if self.dataset.train_u:
+            table.append(["# train_u", f"{len(self.dataset.train_u):,}"])
+        if self.dataset.val:
+            table.append(["# val", f"{len(self.dataset.val):,}"])
+        table.append(["# test", f"{len(self.dataset.test):,}"])
+        print(tabulate(table))
 
        
 
