@@ -6,7 +6,7 @@ DATALOADER:
   NUM_WORKERS: 8
 
 DATASET:
-  NAME: ["progan_train", "diffusion_train"]
+  NAME: "progan_train", "diffusion_train"
 
 INPUT:
   SIZE: (224, 224)
