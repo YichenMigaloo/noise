@@ -72,7 +72,7 @@ class Classification(EvaluatorBase):
                 else:
                     prob.append(out_prob)'''
             softmax_probs = torch.softmax(batch_prob, dim = 0)
-            prob.append(softmax_probs.cpu().numpy.tolist())
+            prob.append(softmax_probs.cpu().numpy().tolist())
         
         self._y_prob.extend(prob)
 
