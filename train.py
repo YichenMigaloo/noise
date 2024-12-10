@@ -18,6 +18,7 @@ import datasets.oxford_pets
 # import datasets.ucf101
 # import datasets.imagenet
 import datasets.progan_train
+import datasets.diffusion_train
 
 # import datasets.imagenet_sketch
 # import datasets.imagenetv2
