@@ -19,6 +19,7 @@ import datasets.oxford_pets
 # import datasets.imagenet
 import datasets.progan_train
 import datasets.diffusion_train
+import datasets.attribution
 
 # import datasets.imagenet_sketch
 # import datasets.imagenetv2
