@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset-config-file",
         type=str,
-        default="",
+        default=["noise/configs/datasets/diffusion_train.yaml","noise/configs/datasets/progan_train.yaml"],
         help="path to config file for dataset setup",
     )
     parser.add_argument("--trainer", type=str, default="", help="name of trainer")
