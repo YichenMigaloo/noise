@@ -1,2 +1,2 @@
-
+n01440002 diffusion
 n01443537 GAN
