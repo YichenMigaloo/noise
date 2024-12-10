@@ -24,8 +24,9 @@ class EvaluatorBase:
 
 
 @EVALUATOR_REGISTRY.register()
+@EVALUATOR_REGISTRY.register()
 class Classification(EvaluatorBase):
-    """Evaluator for classification."""
+    """Evaluator for classification with three classes."""
 
     def __init__(self, cfg, lab2cname=None, **kwargs):
         super().__init__(cfg)
@@ -35,6 +36,7 @@ class Classification(EvaluatorBase):
         self._per_class_res = None
         self._y_true = []
         self._y_pred = []
+        self._y_prob = []
         if cfg.TEST.PER_CLASS_RESULT:
             assert lab2cname is not None
             self._per_class_res = defaultdict(list)
@@ -59,21 +61,14 @@ class Classification(EvaluatorBase):
         self._y_true.extend(gt.data.cpu().numpy().tolist())
         self._y_pred.extend(pred.data.cpu().numpy().tolist())
 
-        # my code starts
-        labels_map = ["real", "fake"]
+        # Updated for three-class classification
+        labels_map = ['GAN', 'diffusion', 'FF++']
         prob = []
         for batch_prob in mo:
-            for idx in torch.topk(batch_prob, k=1).indices.tolist():
-                out_prob = torch.softmax(batch_prob, 0)[idx].item()
-                if labels_map[idx] == 'real':
-                    prob.append(1 - out_prob)
-                else:
-                    prob.append(out_prob)
+            # 使用 softmax 获取每个类别的概率
+            softmax_probs = torch.softmax(batch_prob, dim=0)
+            prob.append(softmax_probs.cpu().numpy().tolist())  # 保存每个类别的概率
         self._y_prob.extend(prob)
-        # print(self._y_prob)
-        # print(self._y_pred)
-        # print(self._y_true)
-        # my code ends
 
         if self._per_class_res is not None:
             for i, label in enumerate(gt):
@@ -91,7 +86,12 @@ class Classification(EvaluatorBase):
             average="macro",
             labels=np.unique(self._y_true)
         )
-        average_precision = 100 * average_precision_score(self._y_true, self._y_prob)
+        # Updated for multi-class average precision
+        average_precision = 100 * average_precision_score(
+            np.array(self._y_true),
+            np.array(self._y_prob),
+            average="macro"
+        )
 
         # The first value will be returned by trainer.test()
         results["accuracy"] = acc
@@ -143,3 +143,4 @@ class Classification(EvaluatorBase):
             print(f"Confusion matrix is saved to {save_path}")
 
         return results
+
