@@ -164,12 +164,11 @@ class DataManager:
         return self._lab2cname
 
     def show_dataset_summary(self, cfg):
-        dataset_name = cfg.DATASET.NAME
+        '''dataset_name = cfg.DATASET.NAME
         source_domains = cfg.DATASET.SOURCE_DOMAINS
         target_domains = cfg.DATASET.TARGET_DOMAINS
-
         table = []
-        table.append(["Dataset", dataset_name])
+        table.append(["Dataset", i])
         if source_domains:
             table.append(["Source", source_domains])
         if target_domains:
@@ -180,9 +179,26 @@ class DataManager:
             table.append(["# train_u", f"{len(self.dataset.train_u):,}"])
         if self.dataset.val:
             table.append(["# val", f"{len(self.dataset.val):,}"])
-        table.append(["# test", f"{len(self.dataset.test):,}"])
+        table.append(["# test", f"{len(self.dataset.test):,}"])'''
+        dataset_name = cfg.DATASET.NAME
+        source_domains = cfg.DATASET.SOURCE_DOMAINS
+        target_domains = cfg.DATASET.TARGET_DOMAINS
+        for i in dataset_name:
+            table = []
+            table.append(["Dataset", i])
+            if source_domains:
+                table.append(["Source", source_domains])
+            if target_domains:
+                table.append(["Target", target_domains])
+            table.append(["# classes", f"{self.num_classes:,}"])
+            table.append(["# train_x", f"{len(self.dataset.train_x):,}"])
+            if self.dataset.train_u:
+                table.append(["# train_u", f"{len(self.dataset.train_u):,}"])
+            if self.dataset.val:
+                table.append(["# val", f"{len(self.dataset.val):,}"])
+            table.append(["# test", f"{len(self.dataset.test):,}"])
 
-        print(tabulate(table))
+            print(tabulate(table))
 
 
 class DatasetWrapper(TorchDataset):
