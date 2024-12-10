@@ -24,9 +24,8 @@ class EvaluatorBase:
 
 
 @EVALUATOR_REGISTRY.register()
-@EVALUATOR_REGISTRY.register()
 class Classification(EvaluatorBase):
-    """Evaluator for classification with three classes."""
+    """Evaluator for classification."""
 
     def __init__(self, cfg, lab2cname=None, **kwargs):
         super().__init__(cfg)
@@ -61,14 +60,26 @@ class Classification(EvaluatorBase):
         self._y_true.extend(gt.data.cpu().numpy().tolist())
         self._y_pred.extend(pred.data.cpu().numpy().tolist())
 
-        # Updated for three-class classification
+        # my code starts
+        #labels_map = ["real", "fake"]
         labels_map = ['GAN', 'diffusion', 'FF++']
         prob = []
         for batch_prob in mo:
-            # 使用 softmax 获取每个类别的概率
-            softmax_probs = torch.softmax(batch_prob, dim=0)
-            prob.append(softmax_probs.cpu().numpy().tolist())  # 保存每个类别的概率
+            '''for idx in torch.topk(batch_prob, k=1).indices.tolist():
+                out_prob = torch.softmax(batch_prob, 0)[idx].item()
+                if labels_map[idx] == 'real':
+                    prob.append(1 - out_prob)
+                else:
+                    prob.append(out_prob)'''
+            softmax_probs = torch.softmax(batch_prob, dim = 0)
+            prob.append(softmax_probs.cpu().numpy.tolist())
+        
         self._y_prob.extend(prob)
+
+        # print(self._y_prob)
+        # print(self._y_pred)
+        # print(self._y_true)
+        # my code ends
 
         if self._per_class_res is not None:
             for i, label in enumerate(gt):
@@ -86,13 +97,12 @@ class Classification(EvaluatorBase):
             average="macro",
             labels=np.unique(self._y_true)
         )
-        # Updated for multi-class average precision
+        #average_precision = 100 * average_precision_score(self._y_true, self._y_prob)
         average_precision = 100 * average_precision_score(
             np.array(self._y_true),
             np.array(self._y_prob),
             average="macro"
         )
-
         # The first value will be returned by trainer.test()
         results["accuracy"] = acc
         results["error_rate"] = err
@@ -109,7 +119,7 @@ class Classification(EvaluatorBase):
             f"* macro_f1: {macro_f1:.2f}%"
         )
 
-        if self._per_class_res is not None:
+        '''if self._per_class_res is not None:
             labels = list(self._per_class_res.keys())
             labels.sort()
 
@@ -132,7 +142,31 @@ class Classification(EvaluatorBase):
             mean_acc = np.mean(accs)
             print(f"* average: {mean_acc:.1f}%")
 
-            results["perclass_accuracy"] = mean_acc
+            results["perclass_accuracy"] = mean_acc'''
+        
+        labels = list(self._per_class_res.keys())
+        labels.sort()
+
+        print("=> per-class result")
+        accs = []
+
+        for label in labels:
+            classname = self._lab2cname[label]
+            res = self._per_class_res[label]
+            correct = sum(res)
+            total = len(res)
+            acc = 100.0 * correct / total
+            accs.append(acc)
+            print(
+                f"* class: {label} ({classname})\t"
+                f"total: {total:,}\t"
+                f"correct: {correct:,}\t"
+                f"acc: {acc:.1f}%"
+            )
+        mean_acc = np.mean(accs)
+        print(f"* average: {mean_acc:.1f}%")
+
+        results["perclass_accuracy"] = mean_acc
 
         if self.cfg.TEST.COMPUTE_CMAT:
             cmat = confusion_matrix(
@@ -143,4 +177,3 @@ class Classification(EvaluatorBase):
             print(f"Confusion matrix is saved to {save_path}")
 
         return results
-
