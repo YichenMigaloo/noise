@@ -493,9 +493,8 @@ class TextEncoder(nn.Module):
         self.dtype = clip_model.dtype
     
     def forward(self):
-        #temp = CUSTOM_TEMPLATES[self.cfg.DATASET.NAME]
-        #prompts = [temp.format(c.replace('_', ' ')) for c in self.classnames]
-        prompts = self.cfg.DATASET.PROMPTS
+        temp = CUSTOM_TEMPLATES[self.cfg.DATASET.NAME]
+        prompts = [temp.format(c.replace('_', ' ')) for c in self.classnames]
         prompts = torch.cat([clip.tokenize(p) for p in prompts])
         prompts = prompts.to('cuda')
         text_features = self.clip_model.encode_text(prompts)
