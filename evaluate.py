@@ -419,7 +419,7 @@ def main(args):
                      'midjourney_v5','progan','sd_512x512','sdxl','stargan','stylegan','stylegan2','stylegan3','taming']
     '''
     
-    dataset_names = ['biggan', 'cyclegan', 'sd_512x512', 'deepfake']
+    dataset_names = ['biggan']
 
     #dataset_names = ['progan','faceswap','dalle3','midjourney_v5']
     #dataset_names = ['progan','faceswap','midjourney_v5']
