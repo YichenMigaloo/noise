@@ -119,7 +119,7 @@ class Classification(EvaluatorBase):
             f"* macro_f1: {macro_f1:.2f}%"
         )
 
-        '''if self._per_class_res is not None:
+        if self._per_class_res is not None:
             labels = list(self._per_class_res.keys())
             labels.sort()
 
@@ -142,31 +142,8 @@ class Classification(EvaluatorBase):
             mean_acc = np.mean(accs)
             print(f"* average: {mean_acc:.1f}%")
 
-            results["perclass_accuracy"] = mean_acc'''
+            results["perclass_accuracy"] = mean_acc
         
-        labels = list(self._per_class_res.keys())
-        labels.sort()
-
-        print("=> per-class result")
-        accs = []
-
-        for label in labels:
-            classname = self._lab2cname[label]
-            res = self._per_class_res[label]
-            correct = sum(res)
-            total = len(res)
-            acc = 100.0 * correct / total
-            accs.append(acc)
-            print(
-                f"* class: {label} ({classname})\t"
-                f"total: {total:,}\t"
-                f"correct: {correct:,}\t"
-                f"acc: {acc:.1f}%"
-            )
-        mean_acc = np.mean(accs)
-        print(f"* average: {mean_acc:.1f}%")
-
-        results["perclass_accuracy"] = mean_acc
 
         if self.cfg.TEST.COMPUTE_CMAT:
             cmat = confusion_matrix(
