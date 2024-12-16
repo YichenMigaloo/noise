@@ -119,8 +119,52 @@ class Classification(EvaluatorBase):
             f"* macro_f1: {macro_f1:.2f}%"
         )
 
-        print("\n=> Confusion Matrix (Normalized by True Labels):")
+        #modified part starts here
+        labels = list(self._per_class_res.keys())
+        labels.sort()
+
+        print("=> per-class result")
+        accs = []
+
+        for label in labels:
+            classname = self._lab2cname[label]
+            res = self._per_class_res[label]
+            correct = sum(res)
+            total = len(res)
+            acc = 100.0 * correct / total
+            accs.append(acc)
+            print(
+                f"* class: {label} ({classname})\t"
+                f"total: {total:,}\t"
+                f"correct: {correct:,}\t"
+                f"acc: {acc:.1f}%"
+            )
+        mean_acc = np.mean(accs)
+        print(f"* average: {mean_acc:.1f}%")
+
+        
+        cmat = confusion_matrix(
+            self._y_true, self._y_pred
+        )
+        print("\n=> Confusion Matrix (Counts for Each Label):")
+        labels = np.unique(self._y_true)
+        print("Labels:", [self._lab2cname[label] for label in labels])
         print(cmat)
+
+        # Save the confusion matrix
+        save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
+        torch.save(cmat, save_path)
+        print(f"Confusion matrix is saved to {save_path}")
+
+        # Print confusion matrix per label
+        for i, label in enumerate(labels):
+            classname = self._lab2cname[label]
+            print(f"\nConfusion matrix for label {label} ({classname}):")
+            row = cmat[i]
+            print(f"  True: {classname} -> {dict(zip(labels, row))}")
+
+
+        #modified part ends here
 
         if self._per_class_res is not None:
             labels = list(self._per_class_res.keys())
