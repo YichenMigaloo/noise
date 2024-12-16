@@ -62,7 +62,7 @@ class Classification(EvaluatorBase):
 
         # my code starts
         #labels_map = ["real", "fake"]
-        labels_map = ['GAN', 'diffusion', 'FF++']
+        #labels_map = ['GAN', 'diffusion', 'FF++']
         prob = []
         for batch_prob in mo:
             '''for idx in torch.topk(batch_prob, k=1).indices.tolist():
@@ -118,6 +118,9 @@ class Classification(EvaluatorBase):
             f"* error: {err:.2f}%\n"
             f"* macro_f1: {macro_f1:.2f}%"
         )
+
+        print("\n=> Confusion Matrix (Normalized by True Labels):")
+        print(cmat)
 
         if self._per_class_res is not None:
             labels = list(self._per_class_res.keys())
