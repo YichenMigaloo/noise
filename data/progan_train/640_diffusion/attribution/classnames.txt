@@ -1,3 +1,0 @@
-n0144001 GAN
-n0144002 Diffusion
-n0144003 FF++
