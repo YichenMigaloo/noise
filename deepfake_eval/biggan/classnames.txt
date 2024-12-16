@@ -1,3 +1,2 @@
-n01440002 Diffusion
-n01440001 GAN
-n01440003 FF++
+n01440764 real
+n01443537 fake
