@@ -32,7 +32,13 @@ class Classification(EvaluatorBase):
         self._lab2cname = lab2cname
         self._correct = 0
         self._total = 0
-        self._per_class_res = None
+        #self._per_class_res = None
+        #modified
+        labels_map = ['biggan','cyclegan','dalle3','eg3d','firefly','gaugan',
+                     'glide_50_27','glide_100_10','glide_100_27','guided','ldm_100','ldm_200','ldm_200_cfg',
+                     'midjourney_v5','progan','sd_512x512','sdxl','stargan','stylegan','stylegan2','stylegan3','taming']
+        self._per_class_res = {label: [] for label in range(len(labels_map))}
+        #---Modified ends
         self._y_true = []
         self._y_pred = []
         self._y_prob = []
@@ -62,7 +68,8 @@ class Classification(EvaluatorBase):
 
         # my code starts
         #labels_map = ["real", "fake"]
-        #labels_map = ['GAN', 'diffusion', 'FF++']
+        
+
         prob = []
         for batch_prob in mo:
             '''for idx in torch.topk(batch_prob, k=1).indices.tolist():
@@ -84,8 +91,10 @@ class Classification(EvaluatorBase):
         if self._per_class_res is not None:
             for i, label in enumerate(gt):
                 label = label.item()
-                matches_i = int(matches[i].item())
-                self._per_class_res[label].append(matches_i)
+                #matches_i = int(matches[i].item())
+                #self._per_class_res[label].append(matches_i)
+                predicted_label = pred[i].item()
+                self._per_class_res[label].append(predicted_label)
 
     def evaluate(self):
         results = OrderedDict()
