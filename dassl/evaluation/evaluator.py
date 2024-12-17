@@ -138,7 +138,7 @@ class Classification(EvaluatorBase):
         for label in labels:
             classname = self._lab2cname[label]
             res = self._per_class_res[label]
-            correct = sum(res)
+            correct = sum(1 for p in self._per_class_res[label] if p == label)
             total = len(res)
             acc = 100.0 * correct / total
             accs.append(acc)
@@ -161,9 +161,9 @@ class Classification(EvaluatorBase):
         print(cmat)
 
         # Save the confusion matrix
-        save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
-        torch.save(cmat, save_path)
-        print(f"Confusion matrix is saved to {save_path}")
+        #save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
+        #torch.save(cmat, save_path)
+        #print(f"Confusion matrix is saved to {save_path}")
 
         # Print confusion matrix per label
         for i, label in enumerate(labels):
@@ -205,8 +205,8 @@ class Classification(EvaluatorBase):
             cmat = confusion_matrix(
                 self._y_true, self._y_pred, normalize="true"
             )
-            save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
-            torch.save(cmat, save_path)
-            print(f"Confusion matrix is saved to {save_path}")
+            #save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
+            #torch.save(cmat, save_path)
+            #print(f"Confusion matrix is saved to {save_path}")
 
         return results
