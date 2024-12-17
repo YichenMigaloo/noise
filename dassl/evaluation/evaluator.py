@@ -175,7 +175,7 @@ class Classification(EvaluatorBase):
 
         #modified part ends here
 
-        if self._per_class_res is not None:
+        '''if self._per_class_res is not None:
             labels = list(self._per_class_res.keys())
             labels.sort()
 
@@ -207,6 +207,6 @@ class Classification(EvaluatorBase):
             )
             #save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
             #torch.save(cmat, save_path)
-            #print(f"Confusion matrix is saved to {save_path}")
+            #print(f"Confusion matrix is saved to {save_path}")'''
 
         return results
