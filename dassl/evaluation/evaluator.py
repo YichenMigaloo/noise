@@ -32,19 +32,12 @@ class Classification(EvaluatorBase):
         self._lab2cname = lab2cname
         self._correct = 0
         self._total = 0
-        #self._per_class_res = None
-        #modified
-        '''labels_map = ['biggan','cyclegan','dalle3','eg3d','firefly','gaugan',
-                     'glide_50_27','glide_100_10','glide_100_27','guided','ldm_100','ldm_200','ldm_200_cfg',
-                     'midjourney_v5','progan','sd_512x512','sdxl','stargan','stylegan','stylegan2','stylegan3','taming']
-        self._per_class_res = {label: [] for label in range(len(labels_map))}'''
-        #---Modified ends
+        self._per_class_res = None
         self._y_true = []
         self._y_pred = []
-        self._y_prob = []
-        '''if cfg.TEST.PER_CLASS_RESULT:
+        if cfg.TEST.PER_CLASS_RESULT:
             assert lab2cname is not None
-            self._per_class_res = defaultdict(list)'''
+            self._per_class_res = defaultdict(list)
 
     def reset(self):
         self._correct = 0
@@ -67,22 +60,16 @@ class Classification(EvaluatorBase):
         self._y_pred.extend(pred.data.cpu().numpy().tolist())
 
         # my code starts
-        #labels_map = ["real", "fake"]
-        
-
+        labels_map = ["real", "fake"]
         prob = []
         for batch_prob in mo:
-            '''for idx in torch.topk(batch_prob, k=1).indices.tolist():
+            for idx in torch.topk(batch_prob, k=1).indices.tolist():
                 out_prob = torch.softmax(batch_prob, 0)[idx].item()
                 if labels_map[idx] == 'real':
                     prob.append(1 - out_prob)
                 else:
-                    prob.append(out_prob)'''
-            softmax_probs = torch.softmax(batch_prob, dim = 0)
-            prob.append(softmax_probs.cpu().numpy().tolist())
-        
+                    prob.append(out_prob)
         self._y_prob.extend(prob)
-
         # print(self._y_prob)
         # print(self._y_pred)
         # print(self._y_true)
@@ -91,10 +78,8 @@ class Classification(EvaluatorBase):
         if self._per_class_res is not None:
             for i, label in enumerate(gt):
                 label = label.item()
-                #matches_i = int(matches[i].item())
-                #self._per_class_res[label].append(matches_i)
-                predicted_label = pred[i].item()
-                self._per_class_res[label].append(predicted_label)
+                matches_i = int(matches[i].item())
+                self._per_class_res[label].append(matches_i)
 
     def evaluate(self):
         results = OrderedDict()
@@ -106,12 +91,8 @@ class Classification(EvaluatorBase):
             average="macro",
             labels=np.unique(self._y_true)
         )
-        #average_precision = 100 * average_precision_score(self._y_true, self._y_prob)
-        average_precision = 100 * average_precision_score(
-            np.array(self._y_true),
-            np.array(self._y_prob),
-            average="macro"
-        )
+        average_precision = 100 * average_precision_score(self._y_true, self._y_prob)
+
         # The first value will be returned by trainer.test()
         results["accuracy"] = acc
         results["error_rate"] = err
@@ -128,54 +109,7 @@ class Classification(EvaluatorBase):
             f"* macro_f1: {macro_f1:.2f}%"
         )
 
-        '''#modified part starts here
-        labels = list(self._per_class_res.keys())
-        labels.sort()
-
-        print("=> per-class result")
-        accs = []
-
-        for label in labels:
-            classname = self._lab2cname[label]
-            res = self._per_class_res[label]
-            correct = sum(1 for p in self._per_class_res[label] if p == label)
-            total = len(res)
-            acc = 100.0 * correct / total
-            accs.append(acc)
-            print(
-                f"* class: {label} ({classname})\t"
-                f"total: {total:,}\t"
-                f"correct: {correct:,}\t"
-                f"acc: {acc:.1f}%"
-            )
-        mean_acc = np.mean(accs)
-        print(f"* average: {mean_acc:.1f}%")
-
-        
-        cmat = confusion_matrix(
-            self._y_true, self._y_pred
-        )
-        print("\n=> Confusion Matrix (Counts for Each Label):")
-        labels = np.unique(self._y_true)
-        print("Labels:", [self._lab2cname[label] for label in labels])
-        print(cmat)
-
-        # Save the confusion matrix
-        #save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
-        #torch.save(cmat, save_path)
-        #print(f"Confusion matrix is saved to {save_path}")
-
-        # Print confusion matrix per label
-        for i, label in enumerate(labels):
-            classname = self._lab2cname[label]
-            print(f"\nConfusion matrix for label {label} ({classname}):")
-            row = cmat[i]
-            print(f"  True: {classname} -> {dict(zip(labels, row))}")
-
-
-        #modified part ends here'''
-
-        '''if self._per_class_res is not None:
+        if self._per_class_res is not None:
             labels = list(self._per_class_res.keys())
             labels.sort()
 
@@ -199,14 +133,13 @@ class Classification(EvaluatorBase):
             print(f"* average: {mean_acc:.1f}%")
 
             results["perclass_accuracy"] = mean_acc
-        
 
         if self.cfg.TEST.COMPUTE_CMAT:
             cmat = confusion_matrix(
                 self._y_true, self._y_pred, normalize="true"
             )
-            #save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
-            #torch.save(cmat, save_path)
-            #print(f"Confusion matrix is saved to {save_path}")'''
+            save_path = osp.join(self.cfg.OUTPUT_DIR, "cmat.pt")
+            torch.save(cmat, save_path)
+            print(f"Confusion matrix is saved to {save_path}")
 
         return results
