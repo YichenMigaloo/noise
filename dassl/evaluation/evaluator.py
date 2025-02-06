@@ -34,17 +34,17 @@ class Classification(EvaluatorBase):
         self._total = 0
         #self._per_class_res = None
         #modified
-        labels_map = ['biggan','cyclegan','dalle3','eg3d','firefly','gaugan',
+        '''labels_map = ['biggan','cyclegan','dalle3','eg3d','firefly','gaugan',
                      'glide_50_27','glide_100_10','glide_100_27','guided','ldm_100','ldm_200','ldm_200_cfg',
                      'midjourney_v5','progan','sd_512x512','sdxl','stargan','stylegan','stylegan2','stylegan3','taming']
-        self._per_class_res = {label: [] for label in range(len(labels_map))}
+        self._per_class_res = {label: [] for label in range(len(labels_map))}'''
         #---Modified ends
         self._y_true = []
         self._y_pred = []
         self._y_prob = []
-        if cfg.TEST.PER_CLASS_RESULT:
+        '''if cfg.TEST.PER_CLASS_RESULT:
             assert lab2cname is not None
-            self._per_class_res = defaultdict(list)
+            self._per_class_res = defaultdict(list)'''
 
     def reset(self):
         self._correct = 0
@@ -128,7 +128,7 @@ class Classification(EvaluatorBase):
             f"* macro_f1: {macro_f1:.2f}%"
         )
 
-        #modified part starts here
+        '''#modified part starts here
         labels = list(self._per_class_res.keys())
         labels.sort()
 
@@ -173,7 +173,7 @@ class Classification(EvaluatorBase):
             print(f"  True: {classname} -> {dict(zip(labels, row))}")
 
 
-        #modified part ends here
+        #modified part ends here'''
 
         '''if self._per_class_res is not None:
             labels = list(self._per_class_res.keys())
