@@ -89,6 +89,8 @@ class progan_train(DatasetBase):
 
         for label, folder in enumerate(folders):
             imnames = listdir_nohidden(os.path.join(split_dir, folder))
+            if folder.startswith('.') or folder not in classnames:
+                continue
             classname = classnames[folder]
             for imname in imnames:
                 impath = os.path.join(split_dir, folder, imname)
