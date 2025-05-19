@@ -13,7 +13,7 @@ from torchvision.transforms import (
     RandomHorizontalFlip
 )
 from torchvision.transforms.functional import InterpolationMode
-
+import io
 from .autoaugment import SVHNPolicy, CIFAR10Policy, ImageNetPolicy
 from .randaugment import RandAugment, RandAugment2, RandAugmentFixMatch
 
@@ -76,6 +76,15 @@ def cv2_jpg(img, compress_val):
     return decimg[:,:,::-1]
 
 
+class JPEGCompression:
+    def __init__(self, quality=75):
+        self.quality = quality
+
+    def __call__(self, img):
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG', quality=self.quality)
+        buffer.seek(0)
+        return Image.open(buffer)
 # def pil_jpg(img, compress_val):
 #     print('IN PIL')
 #     out = BytesIO()
@@ -422,8 +431,10 @@ def _build_transform_test(cfg, choices, target_size, normalize):
     print(f"+ {target_size} center crop")
     tfm_test += [CenterCrop(input_size)]
 
-    print("+ gaussian blur (kernel=23, sigma=2.0)")
-    tfm_test += [GaussianBlur(kernel_size=23, sigma=(2.0, 2.0))]  # 固定模糊程度为1.0
+    print(f"+ compression 75")
+    tfm_test += [JPEGCompression(quality=75)]  # 👈 这里设压缩质量
+
+
     print("+ to torch tensor of range [0, 1]")
     tfm_test += [ToTensor()]
 
