@@ -421,9 +421,9 @@ def _build_transform_test(cfg, choices, target_size, normalize):
 
     print(f"+ {target_size} center crop")
     tfm_test += [CenterCrop(input_size)]
-    
-    print("+ gaussian blur (kernel=23, sigma=1.0)")
-    tfm_test += [GaussianBlur(kernel_size=23, sigma=(1.0, 1.0))]  # 固定模糊程度为1.0
+
+    print("+ gaussian blur (kernel=23, sigma=2.0)")
+    tfm_test += [GaussianBlur(kernel_size=23, sigma=(2.0, 2.0))]  # 固定模糊程度为1.0
     print("+ to torch tensor of range [0, 1]")
     tfm_test += [ToTensor()]
 
