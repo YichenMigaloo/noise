@@ -419,9 +419,7 @@ def main(args):
                      'midjourney_v5','progan','sd_512x512','sdxl','stargan','stylegan','stylegan2','stylegan3','taming']
     '''
 
-    dataset_names = ['biggan','cyclegan','dalle3','eg3d','firefly','gaugan',
-                     'glide_50_27','glide_100_10','glide_100_27','guided','ldm_100','ldm_200','ldm_200_cfg',
-                     'midjourney_v5','progan','sd_512x512','sdxl','stargan','stylegan','stylegan2','stylegan3','taming']
+    dataset_names = ['stargan','stylegan','stylegan2','stylegan3','taming']
     
     
     #dataset_names = ['sdxl','dalle2','guided','taming']
