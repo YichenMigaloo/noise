@@ -431,8 +431,8 @@ def _build_transform_test(cfg, choices, target_size, normalize):
     print(f"+ {target_size} center crop")
     tfm_test += [CenterCrop(input_size)]
 
-    print(f"+ compression 75")
-    tfm_test += [JPEGCompression(quality=75)]  # 👈 这里设压缩质量
+    print(f"+ compression 50")
+    tfm_test += [JPEGCompression(quality=50)]  
 
 
     print("+ to torch tensor of range [0, 1]")
