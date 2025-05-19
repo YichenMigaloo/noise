@@ -85,18 +85,18 @@ class JPEGCompression:
         img.save(buffer, format='JPEG', quality=self.quality)
         buffer.seek(0)
         return Image.open(buffer)
-# def pil_jpg(img, compress_val):
-#     print('IN PIL')
-#     out = BytesIO()
-#     img = Image.fromarray(img)
-#     # img = np.transpose(img, (1, 2, 0))
-#     img.save(out, format='jpeg', quality=compress_val)
-#     img = Image.open(out)
-#     # load from memory before ByteIO closes
-#     img = np.array(img)
-#     print(img.shape)
-#     out.close()
-#     return img
+def pil_jpg(img, compress_val):
+      print('IN PIL')
+      out = BytesIO()
+      img = Image.fromarray(img)
+      # img = np.transpose(img, (1, 2, 0))
+      img.save(out, format='jpeg', quality=compress_val)
+      img = Image.open(out)
+      # load from memory before ByteIO closes
+      img = np.array(img)
+      print(img.shape)
+      out.close()
+      return img
 
 
 # jpeg_dict = {'cv2': cv2_jpg, 'pil': pil_jpg}
@@ -431,8 +431,8 @@ def _build_transform_test(cfg, choices, target_size, normalize):
     print(f"+ {target_size} center crop")
     tfm_test += [CenterCrop(input_size)]
 
-    print(f"+ compression 50")
-    tfm_test += [JPEGCompression(quality=50)]  
+    '''print(f"+ compression 50")
+    tfm_test += [JPEGCompression(quality=50)]  '''
 
 
     print("+ to torch tensor of range [0, 1]")
